@@ -1,0 +1,12 @@
+[package]
+name = "Information_Transformation_Algorithms_Task04"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bit_writer_reader = {git = "https://github.com/Strilets-Glib-FI41mn/Information_Transformation_Algorithms_Task02", tag = "0.2.0"}
+zwl_gs = {path = "zwl"}
+#CLI!
+clap = { version = "4.5.48", features = ["derive"] }
+dialoguer = "0.12.0"
+serde = { version = "1.0.226", features = ["derive"] }
