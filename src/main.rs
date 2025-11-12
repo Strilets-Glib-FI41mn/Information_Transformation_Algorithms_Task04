@@ -1,4 +1,4 @@
-use zwl_gs::{self, ZwlDecoder};
+use zwl_gs::{self, ZwlDecoder, ZwlEncoder};
 
 use clap::Parser;
 use serde::Serialize;
@@ -34,10 +34,25 @@ struct Cli {
 }
 
 fn main() -> io::Result<()>{
-    println!("u8 size: {}", zwl_gs::ZwlEncoder::<u8>::header_bit_size());
-    println!("u16 size: {}", zwl_gs::ZwlEncoder::<u16>::header_bit_size());
-    println!("u32 size: {}", zwl_gs::ZwlEncoder::<u32>::header_bit_size());
-    println!("u64 size: {}", zwl_gs::ZwlEncoder::<u64>::header_bit_size());
+    println!("u8 size: {}", zwl_gs::ZwlEncoder::<u8, File>::header_bit_size());
+    println!("u16 size: {}", zwl_gs::ZwlEncoder::<u16, File>::header_bit_size());
+    println!("u32 size: {}", zwl_gs::ZwlEncoder::<u32, File>::header_bit_size());
+    println!("u64 size: {}", zwl_gs::ZwlEncoder::<u64, File>::header_bit_size());
+    let s = "test testtest testtesttest".to_string();
+    let cursor = io::Cursor::new(s.as_bytes());
+    let mut encoder: ZwlEncoder<u16, io::Cursor<&[u8]>> = ZwlEncoder::<u16, io::Cursor<&[u8]>>::new(cursor);
+    let mut buffer = [0u8; 70];  // A buffer with a capacity of 1024 bytes
+    encoder.encode(&mut buffer[..])?;
+    println!("{:?}", encoder.dictionary.words);
+
+    let cursor = io::Cursor::new(s.as_bytes());
+    let mut encoder: ZwlEncoder<u16, io::Cursor<&[u8]>> = ZwlEncoder::<u16, io::Cursor<&[u8]>>::new(cursor);
+    let mut buffer_2 = [0u8; 35];  // A buffer with a capacity of 1024 bytes
+    encoder.encode_headerless(&mut buffer_2[..])?;
+
+    println!("input: {:?}", &s.bytes());
+    println!("buffer result: {:?}", &buffer);
+    println!("buffer result 2: {:?}", &buffer_2);
     let cli = Cli::parse();
     #[cfg(debug_assertions)]
     println!("{:?}", cli);
@@ -104,15 +119,9 @@ fn main() -> io::Result<()>{
 
 
 pub enum ZwlDecoderE{
-    DU8(ZwlDecoder<u8>),
     DU16(ZwlDecoder<u16>),
     DU32(ZwlDecoder<u32>),
     DU64(ZwlDecoder<u64>)
-}
-impl From::<ZwlDecoder<u8>> for ZwlDecoderE{
-    fn from(value: ZwlDecoder<u8>) -> Self {
-        Self::DU8(value)
-    }
 }
 
 impl From::<ZwlDecoder<u16>> for ZwlDecoderE{
@@ -138,9 +147,6 @@ pub fn get_decoder(mut file: File) -> Option<ZwlDecoderE> {
     file.read_exact(&mut buff);
     let bit_size = u64::from_be_bytes(buff);
     match bit_size{
-        8 =>{
-            Some(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u8>::new(file)))
-        }
         16 => {
             Some(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u16>::new(file)))
         }
