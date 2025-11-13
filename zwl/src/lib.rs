@@ -222,3 +222,22 @@ impl ReadableIndex for u64{
         Ok((Self::from_be_bytes(buff),size))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io;
+    #[test]
+    fn encoding_decoding() {
+        let s = "abacacacab".to_string();
+        let cursor = io::Cursor::new(s.as_bytes());
+        let mut encoder: ZwlEncoder<u16, io::Cursor<&[u8]>> = ZwlEncoder::<u16, io::Cursor<&[u8]>>::new(cursor);
+        let mut buffer = vec![0u8; s.len() * 4];  // A buffer with a capacity of 1024 bytes
+        let mut buffer_d = [0u8; 10];  // A buffer with a capacity of 1024 bytes
+        assert!(encoder.encode(&mut buffer[..]).is_ok());
+        let mut decoder = ZwlDecoder::<u16, _>::new(&buffer[1..]);
+        assert!(decoder.decode(&mut buffer_d[..]).is_ok());
+
+        assert_eq!(String::from_utf8(buffer_d.to_vec()), Ok(s))
+    }
+}

@@ -34,35 +34,12 @@ struct Cli {
 }
 
 fn main() -> io::Result<()>{
-    println!("u8 size: {}", zwl_gs::ZwlEncoder::<u8, File>::header_bit_size());
-    println!("u16 size: {}", zwl_gs::ZwlEncoder::<u16, File>::header_bit_size());
-    println!("u32 size: {}", zwl_gs::ZwlEncoder::<u32, File>::header_bit_size());
-    println!("u64 size: {}", zwl_gs::ZwlEncoder::<u64, File>::header_bit_size());
+    // println!("u8 size: {}", zwl_gs::ZwlEncoder::<u8, File>::header_bit_size());
+    // println!("u16 size: {}", zwl_gs::ZwlEncoder::<u16, File>::header_bit_size());
+    // println!("u32 size: {}", zwl_gs::ZwlEncoder::<u32, File>::header_bit_size());
+    // println!("u64 size: {}", zwl_gs::ZwlEncoder::<u64, File>::header_bit_size());
     //let s = "This is a test string for encoding for the sake of checking it works".to_string();
     // let s = "tested word just in case... ...".to_string();
-    let s = "abacacacab".to_string();
-    // let s = "aaaaaaaa".to_string();
-    let cursor = io::Cursor::new(s.as_bytes());
-    let mut encoder: ZwlEncoder<u16, io::Cursor<&[u8]>> = ZwlEncoder::<u16, io::Cursor<&[u8]>>::new(cursor);
-    let mut buffer = [0u8; 70];  // A buffer with a capacity of 1024 bytes
-    let mut buffer_d = [0u8; 70];  // A buffer with a capacity of 1024 bytes
-    encoder.encode(&mut buffer[..])?;
-    // println!("{:?}", encoder.dictionary.words);
-
-
-    println!("input: {:?}", &s.bytes());
-    println!("buffer result: {:?}", &buffer);
-    println!("{}", buffer[0]);
-    let mut decoder = ZwlDecoder::<u16, _>::new(&buffer[1..]);
-    //let mut decoder = ZwlDecoder::<u16, _>::new(&buffer[2..]);
-    decoder.decode(&mut buffer_d[..])?;
-
-
-    println!("decoded: {:?}", &buffer_d);
-    println!("decoded string: {:?}", &String::from_utf8(buffer_d.to_vec()));
-
-    println!("decoder words: {:?}", decoder.dictionary.words);
-    println!("encoder words: {:?}", encoder.dictionary.words);
 
     let cli = Cli::parse();
     #[cfg(debug_assertions)]
@@ -123,9 +100,13 @@ fn main() -> io::Result<()>{
         }
         Mode::Decode => {
             let input = File::open(input_path)?;
-            let mut decoder = ZwlDecoder::<u16, File>::new(input);
+            let decoder = get_decoder(input)?;
             let output = File::create(output_path)?;
-            decoder.decode(output)?;
+            match decoder{
+                ZwlDecoderE::DU16(mut zwl_decoder) => zwl_decoder.decode(output)?,
+                ZwlDecoderE::DU32(mut zwl_decoder) => zwl_decoder.decode(output)?,
+                ZwlDecoderE::DU64(mut zwl_decoder) => zwl_decoder.decode(output)?,
+            }
         }
     }
     
@@ -172,7 +153,7 @@ pub fn get_decoder<I: Read>(mut file: I) -> std::io::Result<ZwlDecoderE<I>> {
             Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u64, I>::new(file)))
         }
         _ =>{
-            todo!("Only u8, u16, u32 and u64 indexes were implemented")
+            Err(std::io::Error::other("Only u8, u16, u32 and u64 indexes were implemented"))
         }
     }
 }
