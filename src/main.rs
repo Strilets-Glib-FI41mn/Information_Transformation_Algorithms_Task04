@@ -38,21 +38,26 @@ fn main() -> io::Result<()>{
     println!("u16 size: {}", zwl_gs::ZwlEncoder::<u16, File>::header_bit_size());
     println!("u32 size: {}", zwl_gs::ZwlEncoder::<u32, File>::header_bit_size());
     println!("u64 size: {}", zwl_gs::ZwlEncoder::<u64, File>::header_bit_size());
-    let s = "test testtest testtesttest".to_string();
+    let s = "This is a test string for encoding for the sake of checking it works".to_string();
     let cursor = io::Cursor::new(s.as_bytes());
     let mut encoder: ZwlEncoder<u16, io::Cursor<&[u8]>> = ZwlEncoder::<u16, io::Cursor<&[u8]>>::new(cursor);
     let mut buffer = [0u8; 70];  // A buffer with a capacity of 1024 bytes
+    let mut buffer_d = [0u8; 70];  // A buffer with a capacity of 1024 bytes
     encoder.encode(&mut buffer[..])?;
-    println!("{:?}", encoder.dictionary.words);
+    // println!("{:?}", encoder.dictionary.words);
 
-    let cursor = io::Cursor::new(s.as_bytes());
-    let mut encoder: ZwlEncoder<u16, io::Cursor<&[u8]>> = ZwlEncoder::<u16, io::Cursor<&[u8]>>::new(cursor);
-    let mut buffer_2 = [0u8; 35];  // A buffer with a capacity of 1024 bytes
-    encoder.encode_headerless(&mut buffer_2[..])?;
 
     println!("input: {:?}", &s.bytes());
     println!("buffer result: {:?}", &buffer);
-    println!("buffer result 2: {:?}", &buffer_2);
+
+    let mut decoder = ZwlDecoder::<u16, _>::new(&buffer[1..]);
+    //let mut decoder = ZwlDecoder::<u16, _>::new(&buffer[2..]);
+    decoder.decode(&mut buffer_d[..]);
+
+
+    println!("decoded: {:?}", &buffer_d);
+    println!("decoded string: {:?}", &String::from_utf8(buffer_d.to_vec()));
+
     let cli = Cli::parse();
     #[cfg(debug_assertions)]
     println!("{:?}", cli);
@@ -104,12 +109,17 @@ fn main() -> io::Result<()>{
     }
     match cli.mode{
         Mode::Encode => {
-            todo!("encoding");
+            let input = File::open(input_path)?;
+            let mut encoder = ZwlEncoder::<u16, File>::new(input);
+            let output = File::create(output_path)?;
+            encoder.encode(output)?;
             //encode(&input_path, &output_path, !cli.frequencyless)?;
         }
         Mode::Decode => {
-            todo!("decoding");
-            //decode(&input_path, &output_path)?;
+            let input = File::open(input_path)?;
+            let mut decoder = ZwlDecoder::<u16, File>::new(input);
+            let output = File::create(output_path)?;
+            decoder.decode(output)?;
         }
     }
     
@@ -118,43 +128,42 @@ fn main() -> io::Result<()>{
 
 
 
-pub enum ZwlDecoderE{
-    DU16(ZwlDecoder<u16>),
-    DU32(ZwlDecoder<u32>),
-    DU64(ZwlDecoder<u64>)
+pub enum ZwlDecoderE<I: Read>{
+    DU16(ZwlDecoder<u16, I>),
+    DU32(ZwlDecoder<u32, I>),
+    DU64(ZwlDecoder<u64, I>)
 }
 
-impl From::<ZwlDecoder<u16>> for ZwlDecoderE{
-    fn from(value: ZwlDecoder<u16>) -> Self {
+impl<I: Read> From::<ZwlDecoder<u16, I>> for ZwlDecoderE<I>{
+    fn from(value: ZwlDecoder<u16, I>) -> Self {
         Self::DU16(value)
     }
 }
 
-impl From::<ZwlDecoder<u32>> for ZwlDecoderE{
-    fn from(value: ZwlDecoder<u32>) -> Self {
+impl<I: Read> From::<ZwlDecoder<u32, I>> for ZwlDecoderE<I>{
+    fn from(value: ZwlDecoder<u32, I>) -> Self {
         Self::DU32(value)
     }
 }
-impl From::<ZwlDecoder<u64>> for ZwlDecoderE{
-    fn from(value: ZwlDecoder<u64>) -> Self {
+impl<I: Read> From::<ZwlDecoder<u64, I>> for ZwlDecoderE<I>{
+    fn from(value: ZwlDecoder<u64, I>) -> Self {
         Self::DU64(value)
     }
 }
 
 
-pub fn get_decoder(mut file: File) -> Option<ZwlDecoderE> {
-    let mut buff = [4; 8];
-    file.read_exact(&mut buff);
-    let bit_size = u64::from_be_bytes(buff);
-    match bit_size{
+pub fn get_decoder<I: Read>(mut file: I) -> std::io::Result<ZwlDecoderE<I>> {
+    let mut buff = [0];
+    file.read_exact(&mut buff)?;
+    match buff[0]{
         16 => {
-            Some(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u16>::new(file)))
+            Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u16, I>::new(file)))
         }
         32 => {
-            Some(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u32>::new(file)))
+            Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u32, I>::new(file)))
         }
         64 => {
-            Some(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u64>::new(file)))
+            Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u64, I>::new(file)))
         }
         _ =>{
             todo!("Only u8, u16, u32 and u64 indexes were implemented")
