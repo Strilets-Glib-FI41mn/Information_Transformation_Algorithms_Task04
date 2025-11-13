@@ -17,22 +17,19 @@ where
     T: TryInto<usize, Error: std::fmt::Debug> + TryFrom<usize, Error: std::fmt::Debug> + From<u8> + std::fmt::Debug + PartialOrd + Copy + Sub<T, Output = T> + WritableIndex + min_max_traits::Max, //+ Add<T, Output = T> 
     I: Read{
 pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {
+    let mut counter = 0;
         let mut buf = [0];
         let mut result = self.input.read(&mut buf);
         while let Ok(s) = result && s > 0{
             self.current_symbol = Some(buf[0]);
             // println!("cs: {}", buf[0]);
             self.sequence.push(buf[0]);
-            if self.sequence.len() == 1{
-                self.index = self.dictionary.find(&self.sequence);
-                self.index.unwrap();
-                //T::from(buf[0]).do_write(& mut output)?;
-            }
-            else{
+            println!("sequence:{:?}", &self.sequence);
                 let found = self.dictionary.find(&self.sequence);
                 match found{
                     Some(found) => self.index = Some(found),
                     None => {
+                        println!("Writting index:{:?}", &self.index);
                         if let Some(t) = self.index{
                             t.do_write(&mut output)?;
                         }
@@ -42,12 +39,14 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
                         self.index = self.dictionary.find(&[self.current_symbol.unwrap()]);
                     },
                 }
-            }
+            
             result = self.input.read(&mut buf);
+            counter += 1;
         }
         if let Some(t) = self.index{
             t.do_write(&mut output)?;
         }
+        println!("COUNTER: {}", counter);
         Ok(())
     }
     pub fn encode<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {

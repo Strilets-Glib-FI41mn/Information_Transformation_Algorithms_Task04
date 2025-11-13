@@ -40,7 +40,8 @@ fn main() -> io::Result<()>{
     println!("u64 size: {}", zwl_gs::ZwlEncoder::<u64, File>::header_bit_size());
     //let s = "This is a test string for encoding for the sake of checking it works".to_string();
     // let s = "tested word just in case... ...".to_string();
-    let s = "abacacacab".to_string();
+    // let s = "abacacacab".to_string();
+    let s = "aaaaaaaa".to_string();
     let cursor = io::Cursor::new(s.as_bytes());
     let mut encoder: ZwlEncoder<u16, io::Cursor<&[u8]>> = ZwlEncoder::<u16, io::Cursor<&[u8]>>::new(cursor);
     let mut buffer = [0u8; 70];  // A buffer with a capacity of 1024 bytes

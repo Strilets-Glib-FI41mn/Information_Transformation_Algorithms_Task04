@@ -21,6 +21,7 @@ impl<T: Copy + TryInto<usize, Error: std::fmt::Debug> + min_max_traits::Max> Dic
 }
 impl<T: From<u8> + PartialOrd + Copy + Sub<T, Output = T> + TryInto<usize, Error: std::fmt::Debug> + TryFrom<usize, Error: std::fmt::Debug> + std::fmt::Debug> Dictionary<T>{
     pub fn find(&self, searched: &[u8]) -> Option<T>{
+        //TODO: FIX, it doesn't work
         let sequence_len = searched.len();
         if sequence_len == 1{
             if searched[0] == self[searched[0]].0{
@@ -53,7 +54,7 @@ impl<T: From<u8> + PartialOrd + Copy + Sub<T, Output = T> + TryInto<usize, Error
                 // println!("depth: {}", depth);
             }
 
-        if candidates.len() > 0{
+        if candidates.len() == 1{
             // println!("c: {:?}, conv: {:?}", candidates, TryInto::<T>::try_into(candidates[0]));
             //return Some(TryInto::<T>::try_into(candidates[0]).unwrap() + T::from(u8::MAX));
             return Some(TryInto::<T>::try_into(candidates[0]).unwrap());
