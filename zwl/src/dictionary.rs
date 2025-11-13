@@ -21,13 +21,13 @@ impl<T: Copy + TryInto<usize, Error: std::fmt::Debug> + min_max_traits::Max> Dic
 }
 impl<T: From<u8> + PartialOrd + Copy + Sub<T, Output = T> + TryInto<usize, Error: std::fmt::Debug> + TryFrom<usize, Error: std::fmt::Debug> + std::fmt::Debug> Dictionary<T>{
     pub fn find(&self, searched: &[u8]) -> Option<T>{
-        //TODO: FIX, it doesn't work
         let sequence_len = searched.len();
         if sequence_len == 1{
             if searched[0] == self[searched[0]].0{
                 return Some(searched[0].into());
             }
             println!("weird");
+            return None;
         }
         else{
             //println!("Searching through the words: {:?}", self.words);
@@ -35,17 +35,18 @@ impl<T: From<u8> + PartialOrd + Copy + Sub<T, Output = T> + TryInto<usize, Error
             let mut candidates = vec![];
             for j in u8::MAX as usize .. (self.len()){
                 if searched[sequence_len - depth - 1] == self[j].0{
-                    candidates.push(j);
+                    candidates.push((j, self[j].1));
                 }
             }
             depth += 1;
             //println!("depth: {}", depth);
-            while candidates.len() > 0 && depth < sequence_len{
+            // while candidates.len() > 0 && depth < sequence_len{
+            while depth < sequence_len{
                 let mut remained = vec![];
                 for candidate in &candidates{
-                    if let Some(candidate_point) = &self[*candidate].1{
+                    if let Some(t) = &candidate.1 && let Some(candidate_point) = &self[*t].1{
                         if searched[sequence_len - depth - 1] == self[*candidate_point].0{
-                            remained.push(*candidate);
+                            remained.push((candidate.0, self[*candidate_point].1));
                         }
                     }
                 }
@@ -57,7 +58,7 @@ impl<T: From<u8> + PartialOrd + Copy + Sub<T, Output = T> + TryInto<usize, Error
         if candidates.len() == 1{
             // println!("c: {:?}, conv: {:?}", candidates, TryInto::<T>::try_into(candidates[0]));
             //return Some(TryInto::<T>::try_into(candidates[0]).unwrap() + T::from(u8::MAX));
-            return Some(TryInto::<T>::try_into(candidates[0]).unwrap());
+            return Some(TryInto::<T>::try_into(candidates[0].0).unwrap());
         }
         }
         // println!("None found");
