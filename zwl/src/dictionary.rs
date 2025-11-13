@@ -1,5 +1,5 @@
 use std::ops::{Index, IndexMut, Sub};
-
+use std::collections::VecDeque;
 
 pub struct Dictionary<T>{
     pub alphabet:[(u8, Option<T>); 256],
@@ -76,6 +76,40 @@ impl<T> Dictionary<T>{
         }
         match (index - G::from(u8::MAX)).try_into(){
             Ok(u) => return self.words.get(u),
+            Err(_) => return None
+        }
+    }
+}
+impl<T: From<u8> + PartialOrd + Copy + Sub<T, Output = T> + TryInto<usize, Error: std::fmt::Debug> + TryFrom<usize, Error: std::fmt::Debug> + std::fmt::Debug> Dictionary<T>{
+    pub fn get_phrase<G>(&self, index: G) -> Option<Vec<u8>>
+    where G: From<u8> + PartialOrd + Copy + Sub<G, Output = G> + TryInto<usize, Error: std::fmt::Debug>{
+        if index <= G::from(u8::MAX){
+            match index.try_into(){
+                Ok(u) => return Some(vec![self.alphabet.get(u)?.0]),
+                Err(_) => return None
+            }
+        }
+        match (index - G::from(u8::MAX)).try_into(){
+            Ok(u) => {                
+                let phrase_end = self.words.get(u)?;
+                let mut output = VecDeque::new();
+                output.push_front(phrase_end.0);
+                let mut other_index = phrase_end.1;
+                //let phrase_start = self.words.get(u)?;
+                //let mut output = vec![phrase_start.0];
+                //let mut other_index = phrase_start.1;
+                while let Some(index) = other_index{
+                    match self.get(index){
+                        Some(subphrase) => {
+                            output.push_front(subphrase.0);
+                            //output.push(subphrase.0);
+                            other_index = subphrase.1;
+                        },
+                        None => break,
+                    }
+                }
+                Some(output.into())
+            },
             Err(_) => return None
         }
     }

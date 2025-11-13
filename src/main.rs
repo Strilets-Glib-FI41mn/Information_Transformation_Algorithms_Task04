@@ -38,7 +38,8 @@ fn main() -> io::Result<()>{
     println!("u16 size: {}", zwl_gs::ZwlEncoder::<u16, File>::header_bit_size());
     println!("u32 size: {}", zwl_gs::ZwlEncoder::<u32, File>::header_bit_size());
     println!("u64 size: {}", zwl_gs::ZwlEncoder::<u64, File>::header_bit_size());
-    let s = "This is a test string for encoding for the sake of checking it works".to_string();
+    //let s = "This is a test string for encoding for the sake of checking it works".to_string();
+    let s = "aaaaa".to_string();
     let cursor = io::Cursor::new(s.as_bytes());
     let mut encoder: ZwlEncoder<u16, io::Cursor<&[u8]>> = ZwlEncoder::<u16, io::Cursor<&[u8]>>::new(cursor);
     let mut buffer = [0u8; 70];  // A buffer with a capacity of 1024 bytes
@@ -52,7 +53,7 @@ fn main() -> io::Result<()>{
 
     let mut decoder = ZwlDecoder::<u16, _>::new(&buffer[1..]);
     //let mut decoder = ZwlDecoder::<u16, _>::new(&buffer[2..]);
-    decoder.decode(&mut buffer_d[..]);
+    decoder.decode(&mut buffer_d[..])?;
 
 
     println!("decoded: {:?}", &buffer_d);

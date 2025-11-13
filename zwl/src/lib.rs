@@ -93,9 +93,9 @@ where
 pub struct ZwlDecoder<T: TryInto<usize>, I: Read>{
     input: I,
     dictionary: Dictionary<T>,
-    sequence: Vec<u8>,
-    current_symbol: Option<u8>,
-    index: Option<T>,
+    // sequence: Vec<u8>,
+    //current_symbol: Option<u8>,
+    // index: Option<T>,
     old_sequence: Vec<u8>,
     old_symbol: Option<u8>,
     old_index: Option<T>,
@@ -120,9 +120,9 @@ where
         Self{
             input,
             dictionary,
-            sequence: vec![],
-            current_symbol: None,
-            index: None,
+            // sequence: vec![],
+            // current_symbol: None,
+            // index: None,
             old_sequence: vec![],
             old_index: None,
             old_symbol: None,
@@ -132,27 +132,40 @@ where
 
 impl<T, I> ZwlDecoder<T, I>
 where 
-    T: TryInto<usize, Error: std::fmt::Debug> + std::fmt::Debug + ReadableIndex + Default + From<u8> + PartialOrd + Copy + Sub<Output = T>,
+    T: TryInto<usize, Error: std::fmt::Debug> + std::fmt::Debug + ReadableIndex + Default + From<u8> + PartialOrd + Copy + Sub<Output = T> + TryFrom<usize, Error: std::fmt::Debug> + min_max_traits::Max,
     I: Read{
     pub fn decode<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {
-        self.index = Some(T::read_from(&mut self.input)?);
-        println!("first index: {:?}", &self.index);
-        self.sequence = vec![self.dictionary[self.index.unwrap()].0];
-        output.write(&self.sequence)?;
-        self.old_index = self.index;
-        self.old_sequence = self.sequence.clone();
-        let mut result = T::read_from(&mut self.input);
-        while let Ok(index) = result{
-            let a = self.dictionary.get(index);
-            match a{
-                Some(_) => todo!(),
-                None => todo!(),
-            }
-
-
-            result = T::read_from(&mut self.input);
+        // self.index = Some(T::read_from(&mut self.input)?);
+        let (index, size) = T::read_from(&mut self.input)?;
+        if size == 0{
+            return Ok(());
         }
-
+        // println!("first index: {:?}", &index);
+        let sequence = vec![self.dictionary[index].0];
+        output.write(&sequence)?;
+        self.old_index = Some(index);
+        self.old_sequence = sequence.clone();
+        let mut result = T::read_from(&mut self.input);
+        while let Ok((index, size)) = result && size > 0{
+            let a = self.dictionary.get_phrase(index);
+            match a{
+                Some(sequence) => {
+                    output.write(&sequence)?;
+                    self.dictionary.push(&(sequence[0], self.old_index.unwrap()));
+                    self.old_index = Some(index);
+                    self.old_sequence = sequence;
+                },
+                None => {
+                    let mut sequence = self.old_sequence.clone();
+                    sequence.push(self.old_sequence[0]);
+                    output.write(&sequence)?;
+                    self.dictionary.push(&(self.old_sequence[0], self.old_index.unwrap()));
+                },
+            }
+            result = T::read_from(&mut self.input);
+            // println!("{:?}", result);
+        }
+        
         Ok(())
     }
 }
@@ -184,30 +197,30 @@ impl WritableIndex for u64{
 }
 
 pub trait ReadableIndex  {
-    fn read_from<I: Read>(input: &mut I) -> std::io::Result<Self> where Self: Sized;
+    fn read_from<I: Read>(input: &mut I) -> std::io::Result<(Self, usize)> where Self: Sized;
 }
 
 
 impl ReadableIndex for u16{
-    fn read_from<I: Read>(input: &mut I) -> std::io::Result<Self>{
+    fn read_from<I: Read>(input: &mut I) -> std::io::Result<(Self, usize)>{
         let mut buff = [0; 2];
-        input.read(&mut buff)?;
-        Ok(Self::from_be_bytes(buff))
+        let size = input.read(&mut buff)?;
+        Ok((Self::from_be_bytes(buff), size))
     }
 }
 
 impl ReadableIndex for u32{
-    fn read_from<I: Read>(input: &mut I) -> std::io::Result<Self>{
+    fn read_from<I: Read>(input: &mut I) -> std::io::Result<(Self, usize)>{
     let mut buff = [0; 4];
-        input.read(&mut buff)?;
-        Ok(Self::from_be_bytes(buff))
+        let size = input.read(&mut buff)?;
+        Ok((Self::from_be_bytes(buff),size))
     }
 }
 
 impl ReadableIndex for u64{
-    fn read_from<I: Read>(input: &mut I) -> std::io::Result<Self>{
+    fn read_from<I: Read>(input: &mut I) -> std::io::Result<(Self, usize)>{
         let mut buff = [0; 8];
-        input.read(&mut buff)?;
-        Ok(Self::from_be_bytes(buff))
+        let size = input.read(&mut buff)?;
+        Ok((Self::from_be_bytes(buff),size))
     }
 }
