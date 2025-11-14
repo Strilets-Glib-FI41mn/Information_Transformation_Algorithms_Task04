@@ -43,7 +43,7 @@ fn main() -> io::Result<()>{
 
     let cli = Cli::parse();
     #[cfg(debug_assertions)]
-    // println!("{:?}", cli);
+    println!("{:?}", cli);
     let input_path = cli.input_file.clone();
 
     let output_path = match cli.output_file{
