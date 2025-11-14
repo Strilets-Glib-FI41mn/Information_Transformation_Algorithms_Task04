@@ -22,14 +22,11 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
         let mut result = self.input.read(&mut buf);
         while let Ok(s) = result && s > 0{
             self.current_symbol = Some(buf[0]);
-            // println!("cs: {}", buf[0]);
             self.sequence.push(buf[0]);
-            println!("sequence:{:?}", &self.sequence);
                 let found = self.dictionary.find(&self.sequence);
                 match found{
                     Some(found) => self.index = Some(found),
                     None => {
-                        println!("Writting index:{:?}", &self.index);
                         if let Some(t) = self.index{
                             t.do_write(&mut output)?;
                         }
@@ -46,7 +43,6 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
         if let Some(t) = self.index{
             t.do_write(&mut output)?;
         }
-        println!("COUNTER: {}", counter);
         Ok(())
     }
     pub fn encode<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {
@@ -134,9 +130,7 @@ where
         if size == 0{
             return Ok(());
         }
-        // println!("first index: {:?}", &index);
         let sequence = vec![self.dictionary[index].0];
-        println!("found sequence: {:?}", sequence);
         output.write(&sequence)?;
         self.old_index = Some(index);
         self.old_sequence = sequence;
@@ -145,24 +139,19 @@ where
             let a = self.dictionary.get_phrase(index);
             match a{
                 Some(sequence) => {
-                    println!("found sequence: {:?}", sequence);
                     output.write(&sequence)?;
                     self.dictionary.push(&(sequence[0], self.old_index.unwrap()));
-                    println!("{:?}",self.dictionary.words.last());
                     self.old_index = Some(index);
                     self.old_sequence = sequence;
                 },
                 None => {
                     let mut sequence = self.old_sequence.clone();
                     sequence.push(self.old_sequence[0]);
-                    println!("sequence: {:?}", sequence);
                     output.write(&sequence)?;
                     self.dictionary.push(&(self.old_sequence[0], self.old_index.unwrap()));
-                    println!("{:?}",self.dictionary.words.last());
                 },
             }
             result = T::read_from(&mut self.input);
-            // println!("{:?}", result);
         }
         Ok(())
     }
