@@ -1,9 +1,14 @@
 use std::ops::{Index, IndexMut, Sub};
 use std::collections::VecDeque;
+pub enum FilledBehaviour{
+    Clear,
+    Freeze
+}
 
 pub struct Dictionary<T>{
     pub alphabet:[(u8, Option<T>); 256],
-    pub words: Vec<(u8, Option<T>)>
+    pub words: Vec<(u8, Option<T>)>,
+    pub filled: FilledBehaviour
 }
 
 impl<T> Dictionary<T>{
@@ -14,7 +19,10 @@ impl<T> Dictionary<T>{
 impl<T: Copy + TryInto<usize, Error: std::fmt::Debug> + min_max_traits::Max> Dictionary<T>{
     pub fn push(&mut self, word: &(u8, T)){
         if self.len() >= (T::MAX).try_into().unwrap(){
-            self.words = vec![];
+            match self.filled{
+                FilledBehaviour::Freeze => return,
+                FilledBehaviour::Clear => self.words = vec![],
+            }
         }
         self.words.push((word.0, Some(word.1)));
     }
@@ -122,7 +130,7 @@ impl<T: std::fmt::Debug> Default for Dictionary<T>{
     fn default() -> Self {
         let alphabet: Vec<_> = (0..=u8::MAX).map(|byte| (byte, None)).collect();
         let alphabet = alphabet.try_into().unwrap();
-        Self { alphabet, words: vec![] }
+        Self { alphabet, words: vec![], filled: FilledBehaviour::Clear }
     }
 }
 

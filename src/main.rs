@@ -1,3 +1,4 @@
+use zwl_gs::dictionary::FilledBehaviour;
 use zwl_gs::{self, ZwlDecoder, ZwlEncoder};
 
 use clap::Parser;
@@ -19,6 +20,18 @@ enum Mode{
     Decode
 }
 
+
+#[cfg_attr(debug_assertions, derive(Debug))]
+#[derive(
+    clap::ValueEnum, Clone, Default, Serialize
+)]
+#[serde(rename_all = "kebab-case")]
+enum FilledOption{
+    #[default]
+    Clear,
+    Freeze
+}
+
 #[cfg_attr(debug_assertions, derive(Debug))]
 #[derive(Parser)]
 #[command(version, about)]
@@ -30,7 +43,9 @@ struct Cli {
     #[arg(long, short, default_value_t = false)]
     overwrite: bool,
     #[arg(long, short, default_value_t = false)]
-    frequencyless: bool
+    frequencyless: bool,
+    #[arg(long, short, default_value_t = FilledOption::Clear, value_enum)]
+    filled: FilledOption
 }
 
 fn main() -> io::Result<()>{
@@ -93,7 +108,7 @@ fn main() -> io::Result<()>{
     match cli.mode{
         Mode::Encode => {
             let input = File::open(input_path)?;
-            let mut encoder = ZwlEncoder::<u16, File>::new(input);
+            let mut encoder = ZwlEncoder::<u16, File>::new(input, FilledBehaviour::Clear);
             let output = File::create(output_path)?;
             encoder.encode(output)?;
             //encode(&input_path, &output_path, !cli.frequencyless)?;
@@ -140,17 +155,24 @@ impl<I: Read> From::<ZwlDecoder<u64, I>> for ZwlDecoderE<I>{
 
 
 pub fn get_decoder<I: Read>(mut file: I) -> std::io::Result<ZwlDecoderE<I>> {
-    let mut buff = [0];
-    file.read_exact(&mut buff)?;
-    match buff[0]{
+    let mut buffer = [0, 0];
+    file.read_exact(&mut buffer)?;
+    let index_bit_size = buffer[0];
+    let filled_behaviour = buffer[1];
+    let filled_behaviour = match filled_behaviour{
+        0 => FilledBehaviour::Clear,
+        1 => FilledBehaviour::Freeze,
+        _ => return Err(std::io::Error::other("Header does not say if dictionary should clear or freeze when it is full"))
+    };
+    match index_bit_size{
         16 => {
-            Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u16, I>::new(file)))
+            Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u16, I>::new(file, filled_behaviour)))
         }
         32 => {
-            Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u32, I>::new(file)))
+            Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u32, I>::new(file, filled_behaviour)))
         }
         64 => {
-            Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u64, I>::new(file)))
+            Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u64, I>::new(file, filled_behaviour)))
         }
         _ =>{
             Err(std::io::Error::other("Only u8, u16, u32 and u64 indexes were implemented"))

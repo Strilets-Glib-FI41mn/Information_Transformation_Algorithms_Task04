@@ -4,6 +4,8 @@ use std::io::prelude::*;
 pub mod dictionary;
 use dictionary::Dictionary;
 
+use crate::dictionary::FilledBehaviour;
+
 pub struct ZwlEncoder<T: TryInto<usize>, I: Read>{
     input: I,
     pub dictionary: Dictionary<T>,
@@ -44,7 +46,7 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
         Ok(())
     }
     pub fn encode<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {
-        Self::write_header(&mut output)?;
+        Self::write_header(&mut output, &self.dictionary.filled)?;
         self.encode_headerless(output)?;
         Ok(())
     }
@@ -56,17 +58,22 @@ where
     T: TryInto<usize, Error: std::fmt::Debug> + std::fmt::Debug,// + Sub<T, Output = T>,// + WritableIndex, 
     I: Read
 {
-    pub fn write_header<O>(output: &mut O) -> std::io::Result<()> where O: Write  {
+    pub fn write_header<O>(output: &mut O, dictionary_filled: &FilledBehaviour) -> std::io::Result<()> where O: Write  {
         let bit_size = Self::header_bit_size();
         output.write_all(&bit_size.to_be_bytes())?;
+        match dictionary_filled{
+            FilledBehaviour::Clear => output.write_all(&[0])?,
+            FilledBehaviour::Freeze => output.write_all(&[1])?,
+        }
         Ok(())
     }
     pub fn header_bit_size() -> u8 {
         let bit_size: u8 = size_of::<T>() as u8 * 8;
         bit_size
     }
-    pub fn new(input: I) -> Self{
-        let dictionary = Dictionary::default();
+    pub fn new(input: I, dictionary_filled: FilledBehaviour) -> Self{
+        let mut dictionary = Dictionary::default();
+        dictionary.filled= dictionary_filled;
         Self{
             input,
             dictionary,
@@ -93,18 +100,9 @@ impl<T, I> ZwlDecoder<T, I>
 where 
     T: TryInto<usize, Error: std::fmt::Debug> + std::fmt::Debug,
     I: Read{
-    pub fn write_header<P>(path: P) -> std::io::Result<()> where P: AsRef<Path>  {
-        let mut file = File::create(path)?;
-        let size = Self::header_size();
-        file.write_all(&size.to_be_bytes())?;
-        Ok(())
-    }
-    pub fn header_size() -> u8 {
-        let size: u8 = size_of::<T>() as u8 * 8;
-        size
-    }
-    pub fn new(input: I) -> Self{
-        let dictionary = Dictionary::default();
+    pub fn new(input: I, dictionary_filled: FilledBehaviour) -> Self{
+        let mut dictionary = Dictionary::default();
+        dictionary.filled = dictionary_filled;
         Self{
             input,
             dictionary,
@@ -218,11 +216,11 @@ mod tests {
     fn encoding_decoding() {
         let s = "abacacacab".to_string();
         let cursor = io::Cursor::new(s.as_bytes());
-        let mut encoder: ZwlEncoder<u16, io::Cursor<&[u8]>> = ZwlEncoder::<u16, io::Cursor<&[u8]>>::new(cursor);
+        let mut encoder: ZwlEncoder<u16, io::Cursor<&[u8]>> = ZwlEncoder::<u16, io::Cursor<&[u8]>>::new(cursor, FilledBehaviour::Clear);
         let mut buffer = vec![0u8; s.len() * 4];  // A buffer with a capacity of 1024 bytes
         let mut buffer_d = [0u8; 10];  // A buffer with a capacity of 1024 bytes
         assert!(encoder.encode(&mut buffer[..]).is_ok());
-        let mut decoder = ZwlDecoder::<u16, _>::new(&buffer[1..]);
+        let mut decoder = ZwlDecoder::<u16, _>::new(&buffer[1..], FilledBehaviour::Clear);
         assert!(decoder.decode(&mut buffer_d[..]).is_ok());
 
         assert_eq!(String::from_utf8(buffer_d.to_vec()), Ok(s))
