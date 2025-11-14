@@ -55,7 +55,7 @@ fn main() -> io::Result<()>{
             match cli.mode{
                 Mode::Encode => {
                     let mut new_extension = out.extension().map(|e| e.to_os_string()).unwrap_or_default();
-                    new_extension.push(".huffman");
+                    new_extension.push(".zwl");
                     out.set_extension(new_extension);
                     out
                 }

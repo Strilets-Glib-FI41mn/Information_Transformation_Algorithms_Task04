@@ -17,7 +17,6 @@ where
     T: TryInto<usize, Error: std::fmt::Debug> + TryFrom<usize, Error: std::fmt::Debug> + From<u8> + std::fmt::Debug + PartialOrd + Copy + Sub<T, Output = T> + WritableIndex + min_max_traits::Max, //+ Add<T, Output = T> 
     I: Read{
 pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {
-    let mut counter = 0;
         let mut buf = [0];
         let mut result = self.input.read(&mut buf);
         while let Ok(s) = result && s > 0{
@@ -38,7 +37,6 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
                 }
             
             result = self.input.read(&mut buf);
-            counter += 1;
         }
         if let Some(t) = self.index{
             t.do_write(&mut output)?;
