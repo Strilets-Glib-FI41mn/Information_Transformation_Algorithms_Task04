@@ -2,7 +2,7 @@ use std::{io::{Read, Write}, ops::Sub};
 
 use bit_writer_reader::bit_writter::BitWriter;
 
-use crate::{dictionary::{Dictionary, FilledBehaviour}, traits::ToBits};
+use crate::{dictionary::{Dictionary, FilledBehaviour}, traits::{TrailingOnesR, LeadingZerosR, RequiredBits, ToBits}};
 
 pub struct ZwlBitEncoder<T: TryInto<usize>, I: Read>{
     input: I,
@@ -16,12 +16,16 @@ pub struct ZwlBitEncoder<T: TryInto<usize>, I: Read>{
 
 impl<T, I> ZwlBitEncoder<T, I>
 where 
-    T: TryInto<usize, Error: std::fmt::Debug> + TryFrom<usize, Error: std::fmt::Debug> + From<u8> + std::fmt::Debug + PartialOrd + Copy + Sub<T, Output = T> + min_max_traits::Max + ToBits + crate::traits::CustomWriteSize, //+ Add<T, Output = T> 
+    T: TryInto<usize, Error: std::fmt::Debug> + TryFrom<usize, Error: std::fmt::Debug> + From<u8> + std::fmt::Debug + PartialOrd + Copy + Sub<T, Output = T> + min_max_traits::Max + ToBits + crate::traits::CustomWriteSize
+    + for<'a> TryFrom<&'a [bool], Error: std::fmt::Debug>
+    + LeadingZerosR + TrailingOnesR + RequiredBits
+    , //+ Add<T, Output = T> 
     I: Read{
 pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {
         let mut writtable = BitWriter::new(&mut output);
         let mut buf = [0; 64];
         let mut result = self.input.read(&mut buf);
+        let mut size_req = 9;
         while let Ok(s) = result && s > 0{
             for i in 0..s{
             self.current_symbol = Some(buf[i]);
@@ -33,10 +37,26 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
                     },
                     None => {
                         if let Some(t) = self.index{
-                            writtable.write_bits(&(t.bits_vec()))?;
+                            // println!("INDEX: {t:?}, {:?}, {:?}, req_t {}", t.bits_vec(), TryInto::<T>::try_into(t.bits_vec().as_slice()), t.required_bits());
+                            let mut target = t.bits_vec();
+                            if target.len() < size_req{
+                                // println!("len:{} ->{size_req}", target.len());
+                                let mut summary = vec![false; size_req - target.len()];
+                                target.append(&mut summary);
+                            }
+                            writtable.write_bits(&target)?;
                         }
-                        // println!("{:?}", &self.index);
                         self.dictionary.push(&(self.current_symbol.unwrap(), self.index.unwrap()));
+                        let new_required_bits = self.dictionary.required_bits();
+                        if size_req != new_required_bits{
+                            // println!("{size_req} -> {new_required_bits}");
+                            let output = (0..size_req).into_iter().map(|_| true).collect::<Vec<_>>();
+                            writtable.write_bits(&output)?;
+                            // let transf= T::try_from(output.as_slice()).unwrap();
+                            // println!("11111...: {transf:?}, 0s: {}, 1s: {}, {}", transf.leading_zeros(), transf.trailing_ones(), transf.trailing_ones() - size_req);
+                            // println!("{size_req} -> {new_required_bits}");
+                            size_req = new_required_bits;
+                        }
                         self.sequence = vec![self.current_symbol.unwrap()];
                         self.index = self.dictionary.find(&[self.current_symbol.unwrap()]);
                     },

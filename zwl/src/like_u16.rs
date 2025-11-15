@@ -2,59 +2,56 @@ use std::ops::Sub;
 
 use crate::traits::{CustomWriteSize, TrailingOnesR, LeadingZerosR, RequiredBits, ToBits};
 #[derive(Default, Clone, Copy, PartialEq, PartialOrd)]
-pub struct LikeU12(pub u16);
-impl TryFrom<usize> for LikeU12{
+pub struct LikeU16(pub u16);
+impl TryFrom<usize> for LikeU16{
     type Error = std::num::TryFromIntError;
 
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         let internal = u16::try_from(value)?;
-        if internal >= 2_u16.pow(12) {
-            return Err(u8::try_from(402).unwrap_err());
-        }
         Ok(Self(internal))
     }
 }
 
-impl Into<usize> for LikeU12{
+impl Into<usize> for LikeU16{
     fn into(self) -> usize {
         usize::from(self.0)
     }
 }
 
-impl ToBits for LikeU12{
+impl ToBits for LikeU16{
     fn bits_vec(&self) -> Vec<bool> {
-        let v: Vec<_> = (0..12).into_iter().map(|position| (self.0 >> position) & 1 == 1).collect();
+        let v: Vec<_> = (0..16).into_iter().map(|position| (self.0 >> position) & 1 == 1).collect();
         //v;
         v[0..self.required_bits()].to_vec()
     }
 }
-impl CustomWriteSize for LikeU12{
+impl CustomWriteSize for LikeU16{
     fn custom_size() -> usize {
-        return 12;
+        return 16;
     }
 }
 
-impl From<u8> for LikeU12{
+impl From<u8> for LikeU16{
     fn from(value: u8) -> Self {
         Self(u16::from(value))
     }
 }
-impl min_max_traits::Max for LikeU12{
-    const MAX: Self = Self(2_u16.pow(12) - 1);
+impl min_max_traits::Max for LikeU16{
+    const MAX: Self = Self(u16::MAX);
 }
-impl std::fmt::Debug for LikeU12{
+impl std::fmt::Debug for LikeU16{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
-impl Sub<LikeU12> for LikeU12{
-    type Output = LikeU12;
+impl Sub<LikeU16> for LikeU16{
+    type Output = LikeU16;
 
     fn sub(self, rhs: Self) -> Self::Output {
         Self(self.0 - rhs.0)
     }
 }
-impl TryFrom<&[bool]> for LikeU12{
+impl TryFrom<&[bool]> for LikeU16{
     type Error = String;
 
     fn try_from(value: &[bool]) -> Result<Self, Self::Error> {
@@ -74,19 +71,19 @@ impl TryFrom<&[bool]> for LikeU12{
     }
 }
 
-impl RequiredBits for LikeU12{
+impl RequiredBits for LikeU16{
     fn required_bits(&self) -> usize{
-        Self::custom_size() - self.0.leading_zeros() as usize + 4
+        Self::custom_size() - self.0.leading_zeros() as usize
     }
 }
-impl LeadingZerosR for LikeU12{
+impl LeadingZerosR for LikeU16{
     fn leading_zeros(&self) -> usize {
         self.0.leading_zeros().try_into().unwrap()
     }
 }
 
 
-impl TrailingOnesR for LikeU12{
+impl TrailingOnesR for LikeU16{
     fn trailing_ones(&self) -> usize {
         self.0.trailing_ones().try_into().unwrap()
     }

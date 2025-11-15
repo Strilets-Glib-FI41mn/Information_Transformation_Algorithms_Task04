@@ -1,5 +1,7 @@
 use std::ops::{Index, IndexMut, Sub};
 use std::collections::VecDeque;
+
+use crate::traits::RequiredBits;
 pub enum FilledBehaviour{
     Clear,
     Freeze
@@ -14,6 +16,11 @@ pub struct Dictionary<T>{
 impl<T> Dictionary<T>{
     pub fn len(&self) -> usize{
         self.alphabet.len() + self.words.len()
+    }
+}
+impl<T> RequiredBits for Dictionary<T>{
+    fn required_bits(&self) -> usize{
+        std::mem::size_of::<usize>() * 8 - self.len().leading_zeros() as usize
     }
 }
 impl<T: Copy + TryInto<usize, Error: std::fmt::Debug> + min_max_traits::Max> Dictionary<T>{

@@ -15,3 +15,13 @@ pub trait ToBits{
 pub trait CustomWriteSize{
     fn custom_size() -> usize;
 }
+pub trait RequiredBits{
+    fn required_bits(&self) -> usize;
+}
+
+pub trait LeadingZerosR{
+    fn leading_zeros(&self) -> usize;
+}
+pub trait TrailingOnesR{
+    fn trailing_ones(&self) -> usize;
+}

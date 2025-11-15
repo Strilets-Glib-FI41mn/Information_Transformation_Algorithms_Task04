@@ -2,6 +2,7 @@ use zwl_gs::bit_decoder::ZwlBitDecoder;
 use zwl_gs::bit_encoder::ZwlBitEncoder;
 use zwl_gs::dictionary::FilledBehaviour;
 use zwl_gs::like_u12::LikeU12;
+use zwl_gs::like_u16::LikeU16;
 use zwl_gs::{self, ZwlDecoder, ZwlEncoder};
 
 use clap::Parser;
@@ -76,6 +77,7 @@ struct Cli {
 }
 
 fn main() -> io::Result<()>{
+    // TryInto::<Vec<bool>>::try_into(LikeU12::from(10));
     let cli = Cli::parse();
     #[cfg(debug_assertions)]
     println!("{:?}", cli);
@@ -135,7 +137,7 @@ fn main() -> io::Result<()>{
                     encoder.encode(output)?;
                 },
                 Encoding::U16 => {
-                    let mut encoder = ZwlEncoder::<u16, File>::new(input, cli.filled.into());
+                    let mut encoder = ZwlBitEncoder::<LikeU16, File>::new(input, cli.filled.into());
                     encoder.encode(output)?;
                 },
                 Encoding::U32 => {
@@ -168,7 +170,7 @@ fn main() -> io::Result<()>{
 
 pub enum ZwlDecoderE<I: Read>{
     DU12(ZwlBitDecoder<LikeU12, I>),
-    DU16(ZwlDecoder<u16, I>),
+    DU16(ZwlBitDecoder<LikeU16, I>),
     DU32(ZwlDecoder<u32, I>),
     DU64(ZwlDecoder<u64, I>)
 }
@@ -178,8 +180,8 @@ impl<I: Read> From::<ZwlBitDecoder<LikeU12, I>> for ZwlDecoderE<I>{
         Self::DU12(value)
     }
 }
-impl<I: Read> From::<ZwlDecoder<u16, I>> for ZwlDecoderE<I>{
-    fn from(value: ZwlDecoder<u16, I>) -> Self {
+impl<I: Read> From::<ZwlBitDecoder<LikeU16, I>> for ZwlDecoderE<I>{
+    fn from(value: ZwlBitDecoder<LikeU16, I>) -> Self {
         Self::DU16(value)
     }
 }
@@ -211,7 +213,7 @@ pub fn get_decoder<I: Read>(mut file: I) -> std::io::Result<ZwlDecoderE<I>> {
             Ok(ZwlDecoderE::from(ZwlBitDecoder::<LikeU12, I>::new(file, filled_behaviour)))
         }
         16 => {
-            Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u16, I>::new(file, filled_behaviour)))
+            Ok(ZwlDecoderE::from(ZwlBitDecoder::<LikeU16, I>::new(file, filled_behaviour)))
         }
         32 => {
             Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u32, I>::new(file, filled_behaviour)))
