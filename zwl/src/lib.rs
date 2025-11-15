@@ -23,6 +23,12 @@ where
     T: TryInto<usize, Error: std::fmt::Debug> + TryFrom<usize, Error: std::fmt::Debug> + From<u8> + std::fmt::Debug + PartialOrd + Copy + Sub<T, Output = T> + WritableIndex + min_max_traits::Max, //+ Add<T, Output = T> 
     I: Read{
 pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {
+
+    
+        let mut found_calc = 0;
+        let mut not_found = 0;
+        let mut found_single = 0;
+
         let mut buf = [0; 64];
         let mut result = self.input.read(&mut buf);
         while let Ok(s) = result && s > 0{
@@ -31,8 +37,12 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
             self.sequence.push(buf[i]);
                 let found = self.dictionary.find(&self.sequence);
                 match found{
-                    Some(found) => self.index = Some(found),
+                    Some(found) => {
+                        self.index = Some(found);
+                        found_calc += 1;
+                    },
                     None => {
+                        not_found += 1;
                         if let Some(t) = self.index{
                             t.do_write(&mut output)?;
                         }
@@ -40,6 +50,7 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
                         self.dictionary.push(&(self.current_symbol.unwrap(), self.index.unwrap()));
                         self.sequence = vec![self.current_symbol.unwrap()];
                         self.index = self.dictionary.find(&[self.current_symbol.unwrap()]);
+                        found_single += 1;
                     },
                 }
             }
@@ -48,6 +59,7 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
         if let Some(t) = self.index{
             t.do_write(&mut output)?;
         }
+        
         Ok(())
     }
     pub fn encode<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {
@@ -212,10 +224,11 @@ mod tests {
         let s = "abacacacab".to_string();
         let cursor = io::Cursor::new(s.as_bytes());
         let mut encoder: ZwlEncoder<u16, io::Cursor<&[u8]>> = ZwlEncoder::<u16, io::Cursor<&[u8]>>::new(cursor, FilledBehaviour::Clear);
-        let mut buffer = vec![0u8; s.len() * 4];  // A buffer with a capacity of 1024 bytes
-        let mut buffer_d = [0u8; 10];  // A buffer with a capacity of 1024 bytes
+        let mut buffer = vec![0u8; s.len() * 4];
+        let mut buffer_d = [0u8; 10];
         assert!(encoder.encode(&mut buffer[..]).is_ok());
-        let mut decoder = ZwlDecoder::<u16, _>::new(&buffer[1..], FilledBehaviour::Clear);
+        println!("{:?}", buffer);
+        let mut decoder = ZwlDecoder::<u16, _>::new(&buffer[2..], FilledBehaviour::Clear);
         assert!(decoder.decode(&mut buffer_d[..]).is_ok());
 
         assert_eq!(String::from_utf8(buffer_d.to_vec()), Ok(s))
