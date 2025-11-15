@@ -170,7 +170,7 @@ pub enum ZwlDecoderE<I: Read>{
     DU12(ZwlBitDecoder<LikeU12, I>),
     DU16(ZwlDecoder<u16, I>),
     DU32(ZwlDecoder<u32, I>),
-    DU64(Box<ZwlDecoder<u64, I>>)
+    DU64(ZwlDecoder<u64, I>)
 }
 
 impl<I: Read> From::<ZwlBitDecoder<LikeU12, I>> for ZwlDecoderE<I>{
@@ -191,7 +191,7 @@ impl<I: Read> From::<ZwlDecoder<u32, I>> for ZwlDecoderE<I>{
 }
 impl<I: Read> From::<ZwlDecoder<u64, I>> for ZwlDecoderE<I>{
     fn from(value: ZwlDecoder<u64, I>) -> Self {
-        Self::DU64(Box::new(value))
+        Self::DU64(value)
     }
 }
 
