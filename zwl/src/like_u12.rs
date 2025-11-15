@@ -1,4 +1,4 @@
-use std::{ops::Sub, process::Output};
+use std::ops::Sub;
 
 use crate::traits::{CustomWriteSize, ToBits};
 #[derive(Default, Clone, Copy, PartialEq, PartialOrd)]

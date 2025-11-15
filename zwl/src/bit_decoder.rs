@@ -1,8 +1,8 @@
 use std::{fmt::Debug, io::{Read, Write}, ops::Sub};
 
-use bit_writer_reader::{bit_reader::BitReader, bit_writter::BitWriter};
+use bit_writer_reader::bit_reader::BitReader;
 
-use crate::{dictionary::{Dictionary, FilledBehaviour}, traits::{CustomWriteSize, ToBits}};
+use crate::{dictionary::{Dictionary, FilledBehaviour}, traits::CustomWriteSize};
 
 pub struct ZwlBitDecoder<T: TryInto<usize>, I: Read>{
     input: I,

@@ -1,6 +1,6 @@
 use std::{io::{Read, Write}, ops::Sub};
 
-use bit_writer_reader::{bit_reader::BitReader, bit_writter::BitWriter};
+use bit_writer_reader::bit_writter::BitWriter;
 
 use crate::{dictionary::{Dictionary, FilledBehaviour}, traits::ToBits};
 

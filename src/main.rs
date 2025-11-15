@@ -48,14 +48,16 @@ enum FilledOption{
     Clear,
     Freeze
 }
-impl Into<FilledBehaviour> for FilledOption{
-    fn into(self) -> FilledBehaviour {
-        match self{
-            FilledOption::Clear => FilledBehaviour::Clear,
-            FilledOption::Freeze => FilledBehaviour::Freeze,
+
+impl From<FilledOption> for FilledBehaviour{
+    fn from(val: FilledOption) -> Self{
+        match val{
+            FilledOption::Clear => Self::Clear,
+            FilledOption::Freeze => Self::Freeze,
         }
     }
 }
+
 
 #[cfg_attr(debug_assertions, derive(Debug))]
 #[derive(Parser)]
@@ -100,7 +102,7 @@ fn main() -> io::Result<()>{
                         .interact()
                         .unwrap();
                     if !confirmation{
-                        if let Some(rv) = Editor::new().edit(&format!("{}", &out.to_str().unwrap()) ).unwrap() {
+                        if let Some(rv) = Editor::new().edit(out.to_str().unwrap()).unwrap() {
                             println!("The file will become:");
                             println!("{}", rv);
                             out = rv.into();
@@ -168,7 +170,7 @@ pub enum ZwlDecoderE<I: Read>{
     DU12(ZwlBitDecoder<LikeU12, I>),
     DU16(ZwlDecoder<u16, I>),
     DU32(ZwlDecoder<u32, I>),
-    DU64(ZwlDecoder<u64, I>)
+    DU64(Box<ZwlDecoder<u64, I>>)
 }
 
 impl<I: Read> From::<ZwlBitDecoder<LikeU12, I>> for ZwlDecoderE<I>{
@@ -189,7 +191,7 @@ impl<I: Read> From::<ZwlDecoder<u32, I>> for ZwlDecoderE<I>{
 }
 impl<I: Read> From::<ZwlDecoder<u64, I>> for ZwlDecoderE<I>{
     fn from(value: ZwlDecoder<u64, I>) -> Self {
-        Self::DU64(value)
+        Self::DU64(Box::new(value))
     }
 }
 
