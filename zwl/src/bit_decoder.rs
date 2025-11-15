@@ -60,7 +60,12 @@ where
         while let Ok(index_v) = result{
             let index = T::try_from(index_v.as_slice()).unwrap();
             if index.trailing_ones() == size_req{
-                size_req += 1;
+                if T::custom_size() == size_req{
+                    size_req = 9;
+                }
+                else{
+                    size_req += 1;
+                }
                 result = readable.read_bits(size_req);
                 continue;
             }
