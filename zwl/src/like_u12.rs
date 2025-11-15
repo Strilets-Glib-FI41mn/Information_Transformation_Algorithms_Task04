@@ -8,8 +8,7 @@ impl TryFrom<usize> for LikeU12{
 
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         let internal = u16::try_from(value)?;
-        let base: u16 = 2;
-        if internal >= base.pow(12) {
+        if internal >= 2_u16.pow(12) {
             return Err(u8::try_from(402).unwrap_err());
         }
         Ok(Self(internal))
@@ -39,7 +38,7 @@ impl From<u8> for LikeU12{
     }
 }
 impl min_max_traits::Max for LikeU12{
-    const MAX: Self = Self(2^12 - 1);
+    const MAX: Self = Self(2_u16.pow(12) - 1);
 }
 impl std::fmt::Debug for LikeU12{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -67,6 +67,8 @@ where
                     sequence.push(self.old_sequence[0]);
                     output.write(&sequence)?;
                     self.dictionary.push(&(self.old_sequence[0], self.old_index.unwrap()));
+                    self.old_index = Some(T::try_from(self.dictionary.len() - 1).unwrap());
+                    self.old_sequence = sequence;
                 },
             }
             result = readable.read_bits(size_req);

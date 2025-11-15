@@ -19,10 +19,12 @@ impl<T> Dictionary<T>{
 impl<T: Copy + TryInto<usize, Error: std::fmt::Debug> + min_max_traits::Max> Dictionary<T>{
     pub fn push(&mut self, word: &(u8, T)){
         if self.len() >= (T::MAX).try_into().unwrap(){
+            // println!("Reached max!");
             match self.filled{
                 FilledBehaviour::Freeze => return,
                 FilledBehaviour::Clear => self.words = vec![],
             }
+            return;
         }
         self.words.push((word.0, Some(word.1)));
     }
@@ -38,38 +40,45 @@ impl<T: From<u8> + PartialOrd + Copy + Sub<T, Output = T> + TryInto<usize, Error
             return None;
         }
         else{
-            //println!("Searching through the words: {:?}", self.words);
-            let mut depth = 0;
             let mut candidates = vec![];
-            for j in u8::MAX as usize .. (self.len()){
-                if searched[sequence_len - depth - 1] == self[j].0{
-                    candidates.push((j, self[j].1));
+            for j in (u8::MAX - 1) as usize .. (self.len()){
+                if searched[sequence_len - 1] == self[j].0 && let Some(next) = self[j].1{
+                    candidates.push((j, next));
                 }
             }
-            depth += 1;
-            //println!("depth: {}", depth);
-            // while candidates.len() > 0 && depth < sequence_len{
-            while depth < sequence_len{
-                let mut remained = vec![];
-                for candidate in &candidates{
-                    if let Some(t) = &candidate.1 && let Some(candidate_point) = &self[*t].1{
-                        if searched[sequence_len - depth - 1] == self[*candidate_point].0{
-                            remained.push((candidate.0, self[*candidate_point].1));
-                        }
+            let candidates: Vec<_> = candidates.iter().filter(|candidate|{
+                let mut current = searched[sequence_len - 1];
+                let mut current_values = vec![current];
+                let mut next = Some(candidate.1);
+                let mut cand_depth = 1;
+                while next.is_some(){
+                    (current, next) = self[next.unwrap()];
+                    current_values.insert(0, current);
+                    if current_values == searched{
+                        return next == None;
                     }
+                    if cand_depth >= sequence_len{
+                        return false;
+                    }
+                    cand_depth += 1;
                 }
-                candidates = remained;
-                depth += 1;
-                // println!("depth: {}", depth);
-            }
-
+                false
+            }).map(|c| c.0).collect();
         if candidates.len() == 1{
-            // println!("c: {:?}, conv: {:?}", candidates, TryInto::<T>::try_into(candidates[0]));
-            //return Some(TryInto::<T>::try_into(candidates[0]).unwrap() + T::from(u8::MAX));
-            return Some(TryInto::<T>::try_into(candidates[0].0).unwrap());
+            match TryInto::<T>::try_into(candidates[0]){
+                Ok(result) => {
+                    return Some(result);
+                },
+                Err(_) => {
+                    println!("candidate is: {:?}", candidates[0]);
+                },
+            }
+            return Some(TryInto::<T>::try_into(candidates[0]).unwrap());
+        }
+        else if candidates.len() > 1{
+            panic!("search should not have several candidates");
         }
         }
-        // println!("None found");
         None
     }
 }
@@ -84,7 +93,7 @@ impl<T> Dictionary<T>{
                 Err(_) => return None
             }
         }
-        match (index - G::from(u8::MAX)).try_into(){
+        match (index - G::from(u8::MAX) - G::from(1)).try_into(){
             Ok(u) => return self.words.get(u),
             Err(_) => return None
         }
@@ -93,21 +102,18 @@ impl<T> Dictionary<T>{
 impl<T: From<u8> + PartialOrd + Copy + Sub<T, Output = T> + TryInto<usize, Error: std::fmt::Debug> + TryFrom<usize, Error: std::fmt::Debug> + std::fmt::Debug> Dictionary<T>{
     pub fn get_phrase<G>(&self, index: G) -> Option<Vec<u8>>
     where G: From<u8> + PartialOrd + Copy + Sub<G, Output = G> + TryInto<usize, Error: std::fmt::Debug>{
-        if index <= G::from(u8::MAX){
+        if index < G::from(u8::MAX){
             match index.try_into(){
                 Ok(u) => return Some(vec![self.alphabet.get(u)?.0]),
                 Err(_) => return None
             }
         }
-        match (index - G::from(u8::MAX)).try_into(){
-            Ok(u) => {                
+        match (index - G::from(u8::MAX) - G::from(1)).try_into(){
+            Ok(u) => {
                 let phrase_end = self.words.get(u)?;
                 let mut output = VecDeque::new();
                 output.push_front(phrase_end.0);
                 let mut other_index = phrase_end.1;
-                //let phrase_start = self.words.get(u)?;
-                //let mut output = vec![phrase_start.0];
-                //let mut other_index = phrase_start.1;
                 while let Some(index) = other_index{
                     match self.get(index){
                         Some(subphrase) => {
@@ -156,7 +162,7 @@ impl<T, G: From<u8> + PartialOrd + Copy + Sub<G, Output = G> + TryInto<usize, Er
             TryInto::<usize>::try_into(index).unwrap();
             return &mut self.alphabet[index.try_into().unwrap()]
         }else{
-            &mut self.words[(index - G::from(u8::MAX)).try_into().unwrap()]
+            &mut self.words[(index - G::from(u8::MAX - 1)).try_into().unwrap()]
         }
     }
 }

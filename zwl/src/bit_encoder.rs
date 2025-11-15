@@ -22,9 +22,6 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
         let mut writtable = BitWriter::new(&mut output);
         let mut buf = [0; 64];
         let mut result = self.input.read(&mut buf);
-        let mut found_calc = 0;
-        let mut not_found = 0;
-        let mut found_single = 0;
         while let Ok(s) = result && s > 0{
             for i in 0..s{
             self.current_symbol = Some(buf[i]);
@@ -33,18 +30,15 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
                 match found{
                     Some(found) => {
                         self.index = Some(found);
-                        found_calc += 1;
                     },
                     None => {
-                        not_found += 1;
                         if let Some(t) = self.index{
                             writtable.write_bits(&(t.bits_vec()))?;
                         }
-                        //let found_prev = self.dictionary.find(&self.sequence[0..self.sequence.len() - 1]).unwrap();
+                        // println!("{:?}", &self.index);
                         self.dictionary.push(&(self.current_symbol.unwrap(), self.index.unwrap()));
                         self.sequence = vec![self.current_symbol.unwrap()];
                         self.index = self.dictionary.find(&[self.current_symbol.unwrap()]);
-                        found_single += 1;
                     },
                 }
             }
@@ -53,7 +47,6 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
         if let Some(t) = self.index{
             writtable.write_bits(&(t.bits_vec()))?;
         }
-        println!("Found: {found_calc}, missed: {not_found}, found single: {found_single}");
         Ok(())
     }
     pub fn encode<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {
