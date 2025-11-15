@@ -53,6 +53,9 @@ impl<T: From<u8> + PartialOrd + Copy + Sub<T, Output = T> + TryInto<usize, Error
                 let mut cand_depth = 1;
                 while next.is_some(){
                     (current, next) = self[next.unwrap()];
+                    if current != searched[sequence_len - 1 - cand_depth]{
+                        return false;
+                    }
                     current_values.insert(0, current);
                     if current_values == searched{
                         return next == None;
