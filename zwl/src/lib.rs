@@ -1,9 +1,14 @@
+pub mod like_u12;
+pub mod bit_encoder;
+pub mod bit_decoder;
+pub mod traits;
 use std::ops::Sub;
 use std::io::prelude::*;
 pub mod dictionary;
 use dictionary::Dictionary;
 
 use crate::dictionary::FilledBehaviour;
+use crate::traits::{ReadableIndex, WritableIndex};
 
 pub struct ZwlEncoder<T: TryInto<usize>, I: Read>{
     input: I,
@@ -84,7 +89,6 @@ where
     }
 }
 
-
 pub struct ZwlDecoder<T: TryInto<usize>, I: Read>{
     input: I,
     pub dictionary: Dictionary<T>,
@@ -154,10 +158,6 @@ where
 }
 
 
-pub trait WritableIndex {
-    fn do_write<O: Write>(&self, output: &mut O) -> std::io::Result<()>;
-}
-
 impl WritableIndex for u16{
     fn do_write<O: Write>(&self, output: &mut O) -> std::io::Result<()> {
         output.write(&self.to_be_bytes())?;
@@ -178,11 +178,6 @@ impl WritableIndex for u64{
         Ok(())
     }
 }
-
-pub trait ReadableIndex  {
-    fn read_from<I: Read>(input: &mut I) -> std::io::Result<(Self, usize)> where Self: Sized;
-}
-
 
 impl ReadableIndex for u16{
     fn read_from<I: Read>(input: &mut I) -> std::io::Result<(Self, usize)>{

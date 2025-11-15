@@ -1,4 +1,7 @@
+use zwl_gs::bit_decoder::ZwlBitDecoder;
+use zwl_gs::bit_encoder::ZwlBitEncoder;
 use zwl_gs::dictionary::FilledBehaviour;
+use zwl_gs::like_u12::LikeU12;
 use zwl_gs::{self, ZwlDecoder, ZwlEncoder};
 
 use clap::Parser;
@@ -26,10 +29,32 @@ enum Mode{
     clap::ValueEnum, Clone, Default, Serialize
 )]
 #[serde(rename_all = "kebab-case")]
+enum Encoding{
+    #[default]
+    U12,
+    U16,
+    U32,
+    U64
+}
+
+
+#[cfg_attr(debug_assertions, derive(Debug))]
+#[derive(
+    clap::ValueEnum, Clone, Default, Serialize
+)]
+#[serde(rename_all = "kebab-case")]
 enum FilledOption{
     #[default]
     Clear,
     Freeze
+}
+impl Into<FilledBehaviour> for FilledOption{
+    fn into(self) -> FilledBehaviour {
+        match self{
+            FilledOption::Clear => FilledBehaviour::Clear,
+            FilledOption::Freeze => FilledBehaviour::Freeze,
+        }
+    }
 }
 
 #[cfg_attr(debug_assertions, derive(Debug))]
@@ -42,20 +67,13 @@ struct Cli {
     mode: Mode,
     #[arg(long, short, default_value_t = false)]
     overwrite: bool,
-    #[arg(long, short, default_value_t = false)]
-    frequencyless: bool,
     #[arg(long, short, default_value_t = FilledOption::Clear, value_enum)]
-    filled: FilledOption
+    filled: FilledOption,
+    #[arg(long, short, default_value_t = Encoding::U12, value_enum, help = "Ecnoding used in encoding mode")]
+    encoding: Encoding
 }
 
 fn main() -> io::Result<()>{
-    // println!("u8 size: {}", zwl_gs::ZwlEncoder::<u8, File>::header_bit_size());
-    // println!("u16 size: {}", zwl_gs::ZwlEncoder::<u16, File>::header_bit_size());
-    // println!("u32 size: {}", zwl_gs::ZwlEncoder::<u32, File>::header_bit_size());
-    // println!("u64 size: {}", zwl_gs::ZwlEncoder::<u64, File>::header_bit_size());
-    //let s = "This is a test string for encoding for the sake of checking it works".to_string();
-    // let s = "tested word just in case... ...".to_string();
-
     let cli = Cli::parse();
     #[cfg(debug_assertions)]
     println!("{:?}", cli);
@@ -108,16 +126,32 @@ fn main() -> io::Result<()>{
     match cli.mode{
         Mode::Encode => {
             let input = File::open(input_path)?;
-            let mut encoder = ZwlEncoder::<u16, File>::new(input, FilledBehaviour::Clear);
             let output = File::create(output_path)?;
-            encoder.encode(output)?;
-            //encode(&input_path, &output_path, !cli.frequencyless)?;
+            match cli.encoding{
+                Encoding::U12 => {
+                    let mut encoder = ZwlBitEncoder::<LikeU12, File>::new(input, cli.filled.into());
+                    encoder.encode(output)?;
+                },
+                Encoding::U16 => {
+                    let mut encoder = ZwlEncoder::<u16, File>::new(input, cli.filled.into());
+                    encoder.encode(output)?;
+                },
+                Encoding::U32 => {
+                    let mut encoder = ZwlEncoder::<u32, File>::new(input, cli.filled.into());
+                    encoder.encode(output)?;
+                },
+                Encoding::U64 => {
+                    let mut encoder = ZwlEncoder::<u64, File>::new(input, cli.filled.into());
+                    encoder.encode(output)?;
+                },
+            }
         }
         Mode::Decode => {
             let input = File::open(input_path)?;
             let decoder = get_decoder(input)?;
             let output = File::create(output_path)?;
             match decoder{
+                ZwlDecoderE::DU12(mut zwl_decoder) => zwl_decoder.decode(output)?,
                 ZwlDecoderE::DU16(mut zwl_decoder) => zwl_decoder.decode(output)?,
                 ZwlDecoderE::DU32(mut zwl_decoder) => zwl_decoder.decode(output)?,
                 ZwlDecoderE::DU64(mut zwl_decoder) => zwl_decoder.decode(output)?,
@@ -131,11 +165,17 @@ fn main() -> io::Result<()>{
 
 
 pub enum ZwlDecoderE<I: Read>{
+    DU12(ZwlBitDecoder<LikeU12, I>),
     DU16(ZwlDecoder<u16, I>),
     DU32(ZwlDecoder<u32, I>),
     DU64(ZwlDecoder<u64, I>)
 }
 
+impl<I: Read> From::<ZwlBitDecoder<LikeU12, I>> for ZwlDecoderE<I>{
+    fn from(value: ZwlBitDecoder<LikeU12, I>) -> Self {
+        Self::DU12(value)
+    }
+}
 impl<I: Read> From::<ZwlDecoder<u16, I>> for ZwlDecoderE<I>{
     fn from(value: ZwlDecoder<u16, I>) -> Self {
         Self::DU16(value)
@@ -165,6 +205,9 @@ pub fn get_decoder<I: Read>(mut file: I) -> std::io::Result<ZwlDecoderE<I>> {
         _ => return Err(std::io::Error::other("Header does not say if dictionary should clear or freeze when it is full"))
     };
     match index_bit_size{
+        12 => {
+            Ok(ZwlDecoderE::from(ZwlBitDecoder::<LikeU12, I>::new(file, filled_behaviour)))
+        }
         16 => {
             Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u16, I>::new(file, filled_behaviour)))
         }
@@ -175,7 +218,7 @@ pub fn get_decoder<I: Read>(mut file: I) -> std::io::Result<ZwlDecoderE<I>> {
             Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u64, I>::new(file, filled_behaviour)))
         }
         _ =>{
-            Err(std::io::Error::other("Only u8, u16, u32 and u64 indexes were implemented"))
+            Err(std::io::Error::other("Only LikeU12, u16, u32 and u64 indexes were implemented"))
         }
     }
 }
