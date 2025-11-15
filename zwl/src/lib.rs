@@ -1,5 +1,4 @@
 use std::ops::Sub;
-use std::{fs::File, path::Path};
 use std::io::prelude::*;
 pub mod dictionary;
 use dictionary::Dictionary;
@@ -19,11 +18,12 @@ where
     T: TryInto<usize, Error: std::fmt::Debug> + TryFrom<usize, Error: std::fmt::Debug> + From<u8> + std::fmt::Debug + PartialOrd + Copy + Sub<T, Output = T> + WritableIndex + min_max_traits::Max, //+ Add<T, Output = T> 
     I: Read{
 pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {
-        let mut buf = [0];
+        let mut buf = [0; 64];
         let mut result = self.input.read(&mut buf);
         while let Ok(s) = result && s > 0{
-            self.current_symbol = Some(buf[0]);
-            self.sequence.push(buf[0]);
+            for i in 0..s{
+            self.current_symbol = Some(buf[i]);
+            self.sequence.push(buf[i]);
                 let found = self.dictionary.find(&self.sequence);
                 match found{
                     Some(found) => self.index = Some(found),
@@ -37,7 +37,7 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
                         self.index = self.dictionary.find(&[self.current_symbol.unwrap()]);
                     },
                 }
-            
+            }
             result = self.input.read(&mut buf);
         }
         if let Some(t) = self.index{
