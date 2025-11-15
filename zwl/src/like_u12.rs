@@ -8,7 +8,8 @@ impl TryFrom<usize> for LikeU12{
 
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         let internal = u16::try_from(value)?;
-        if internal >= 2^12 {
+        let base: u16 = 2;
+        if internal >= base.pow(12) {
             return Err(u8::try_from(402).unwrap_err());
         }
         Ok(Self(internal))
