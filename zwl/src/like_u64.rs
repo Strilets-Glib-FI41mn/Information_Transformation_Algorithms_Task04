@@ -1,0 +1,93 @@
+use std::ops::Sub;
+
+use crate::traits::{CustomWriteSize, TrailingOnesR, LeadingZerosR, RequiredBits, ToBits};
+#[derive(Default, Clone, Copy, PartialEq, PartialOrd)]
+pub struct LikeU64(pub u64);
+impl TryFrom<usize> for LikeU64{
+    type Error = std::num::TryFromIntError;
+
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        let internal = u64::try_from(value)?;
+        Ok(Self(internal))
+    }
+}
+
+impl ToBits for LikeU64{
+    fn bits_vec(&self) -> Vec<bool> {
+        let v: Vec<_> = (0..64).into_iter().map(|position| (self.0 >> position) & 1 == 1).collect();
+        //v;
+        v[0..self.required_bits()].to_vec()
+    }
+}
+impl CustomWriteSize for LikeU64{
+    fn custom_size() -> usize {
+        return 64;
+    }
+}
+
+impl From<u8> for LikeU64{
+    fn from(value: u8) -> Self {
+        Self(u64::from(value))
+    }
+}
+impl min_max_traits::Max for LikeU64{
+    const MAX: Self = Self(u64::MAX);
+}
+impl std::fmt::Debug for LikeU64{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+impl Sub<LikeU64> for LikeU64{
+    type Output = LikeU64;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 - rhs.0)
+    }
+}
+impl TryFrom<&[bool]> for LikeU64{
+    type Error = String;
+
+    fn try_from(value: &[bool]) -> Result<Self, Self::Error> {
+        if value.len() > Self::custom_size(){
+            return Err(format!("Requires {} bits but {} were provided", Self::custom_size(), value.len()));
+        }
+        let mut internal = 0;
+        // let offest = Self::custom_size() - value.len();
+        value.iter().enumerate().for_each(|(i, b)| {
+            // let flag = 1u64 << (offest + i);
+            let flag = 1u64 << (i);
+            if *b{
+                internal |= flag
+            }
+        });
+        Ok(Self(internal))
+    }
+}
+
+impl RequiredBits for LikeU64{
+    fn required_bits(&self) -> usize{
+        Self::custom_size() - self.0.leading_zeros() as usize
+    }
+}
+impl LeadingZerosR for LikeU64{
+    fn leading_zeros(&self) -> usize {
+        self.0.leading_zeros().try_into().unwrap()
+    }
+}
+
+
+impl TrailingOnesR for LikeU64{
+    fn trailing_ones(&self) -> usize {
+        self.0.trailing_ones().try_into().unwrap()
+    }
+}
+
+
+impl TryInto<usize> for LikeU64{
+    type Error = std::num::TryFromIntError;
+
+    fn try_into(self) -> Result<usize, Self::Error> {
+        self.0.try_into()
+    }
+}

@@ -3,11 +3,12 @@ use zwl_gs::bit_encoder::ZwlBitEncoder;
 use zwl_gs::dictionary::FilledBehaviour;
 use zwl_gs::like_u12::LikeU12;
 use zwl_gs::like_u16::LikeU16;
-use zwl_gs::naive_encoder_decoder::{ZwlDecoder, ZwlEncoder};
 
 use clap::Parser;
 use serde::Serialize;
 use dialoguer::{Confirm, Editor};
+use zwl_gs::like_u32::LikeU32;
+use zwl_gs::like_u64::LikeU64;
 
 use std::fs::File;
 use std::io::{self, Read};
@@ -141,11 +142,11 @@ fn main() -> io::Result<()>{
                     encoder.encode(output)?;
                 },
                 Encoding::U32 => {
-                    let mut encoder = ZwlEncoder::<u32, File>::new(input, cli.filled.into());
+                    let mut encoder = ZwlBitEncoder::<LikeU32, File>::new(input, cli.filled.into());
                     encoder.encode(output)?;
                 },
                 Encoding::U64 => {
-                    let mut encoder = ZwlEncoder::<u64, File>::new(input, cli.filled.into());
+                    let mut encoder = ZwlBitEncoder::<LikeU64, File>::new(input, cli.filled.into());
                     encoder.encode(output)?;
                 },
             }
@@ -171,8 +172,8 @@ fn main() -> io::Result<()>{
 pub enum ZwlDecoderE<I: Read>{
     DU12(ZwlBitDecoder<LikeU12, I>),
     DU16(ZwlBitDecoder<LikeU16, I>),
-    DU32(ZwlDecoder<u32, I>),
-    DU64(ZwlDecoder<u64, I>)
+    DU32(ZwlBitDecoder<LikeU32, I>),
+    DU64(ZwlBitDecoder<LikeU64, I>)
 }
 
 impl<I: Read> From::<ZwlBitDecoder<LikeU12, I>> for ZwlDecoderE<I>{
@@ -186,13 +187,13 @@ impl<I: Read> From::<ZwlBitDecoder<LikeU16, I>> for ZwlDecoderE<I>{
     }
 }
 
-impl<I: Read> From::<ZwlDecoder<u32, I>> for ZwlDecoderE<I>{
-    fn from(value: ZwlDecoder<u32, I>) -> Self {
+impl<I: Read> From::<ZwlBitDecoder<LikeU32, I>> for ZwlDecoderE<I>{
+    fn from(value: ZwlBitDecoder<LikeU32, I>) -> Self {
         Self::DU32(value)
     }
 }
-impl<I: Read> From::<ZwlDecoder<u64, I>> for ZwlDecoderE<I>{
-    fn from(value: ZwlDecoder<u64, I>) -> Self {
+impl<I: Read> From::<ZwlBitDecoder<LikeU64, I>> for ZwlDecoderE<I>{
+    fn from(value: ZwlBitDecoder<LikeU64, I>) -> Self {
         Self::DU64(value)
     }
 }
@@ -216,10 +217,10 @@ pub fn get_decoder<I: Read>(mut file: I) -> std::io::Result<ZwlDecoderE<I>> {
             Ok(ZwlDecoderE::from(ZwlBitDecoder::<LikeU16, I>::new(file, filled_behaviour)))
         }
         32 => {
-            Ok(ZwlDecoderE::from(ZwlDecoder::<u32, I>::new(file, filled_behaviour)))
+            Ok(ZwlDecoderE::from(ZwlBitDecoder::<LikeU32, I>::new(file, filled_behaviour)))
         }
         64 => {
-            Ok(ZwlDecoderE::from(ZwlDecoder::<u64, I>::new(file, filled_behaviour)))
+            Ok(ZwlDecoderE::from(ZwlBitDecoder::<LikeU64, I>::new(file, filled_behaviour)))
         }
         _ =>{
             Err(std::io::Error::other("Only LikeU12, u16, u32 and u64 indexes were implemented"))
