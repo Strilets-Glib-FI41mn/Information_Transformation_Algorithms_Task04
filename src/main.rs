@@ -3,7 +3,7 @@ use zwl_gs::bit_encoder::ZwlBitEncoder;
 use zwl_gs::dictionary::FilledBehaviour;
 use zwl_gs::like_u12::LikeU12;
 use zwl_gs::like_u16::LikeU16;
-use zwl_gs::{self, ZwlDecoder, ZwlEncoder};
+use zwl_gs::naive_encoder_decoder::{ZwlDecoder, ZwlEncoder};
 
 use clap::Parser;
 use serde::Serialize;
@@ -216,10 +216,10 @@ pub fn get_decoder<I: Read>(mut file: I) -> std::io::Result<ZwlDecoderE<I>> {
             Ok(ZwlDecoderE::from(ZwlBitDecoder::<LikeU16, I>::new(file, filled_behaviour)))
         }
         32 => {
-            Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u32, I>::new(file, filled_behaviour)))
+            Ok(ZwlDecoderE::from(ZwlDecoder::<u32, I>::new(file, filled_behaviour)))
         }
         64 => {
-            Ok(ZwlDecoderE::from(zwl_gs::ZwlDecoder::<u64, I>::new(file, filled_behaviour)))
+            Ok(ZwlDecoderE::from(ZwlDecoder::<u64, I>::new(file, filled_behaviour)))
         }
         _ =>{
             Err(std::io::Error::other("Only LikeU12, u16, u32 and u64 indexes were implemented"))
