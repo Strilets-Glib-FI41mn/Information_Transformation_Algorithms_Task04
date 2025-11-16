@@ -71,7 +71,7 @@ struct Cli {
     mode: Mode,
     #[arg(long, short, default_value_t = false)]
     overwrite: bool,
-    #[arg(long, short, default_value_t = FilledOption::Clear, value_enum)]
+    #[arg(long, short, default_value_t = FilledOption::Clear, value_enum, help = "Filled behavior of dictionary used in encoding mode")]
     filled: FilledOption,
     #[arg(long, short, default_value_t = Encoding::U12, value_enum, help = "Ecnoding used in encoding mode")]
     encoding: Encoding
