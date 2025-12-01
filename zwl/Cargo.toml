@@ -1,8 +1,8 @@
 [package]
 name = "zwl_gs"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 
 [dependencies]
 min_max_traits = "0.1.0"
-bit_writer_reader = {git = "https://github.com/Strilets-Glib-FI41mn/Information_Transformation_Algorithms_Task02", tag = "0.3.0"}
+bit_writer_reader = {git = "https://github.com/Strilets-Glib-FI41mn/Information_Transformation_Algorithms_Task02", tag = "0.4.0"}
