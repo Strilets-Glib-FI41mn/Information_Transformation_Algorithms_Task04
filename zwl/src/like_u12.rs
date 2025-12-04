@@ -76,7 +76,7 @@ impl TryFrom<&[bool]> for LikeU12{
 
 impl RequiredBits for LikeU12{
     fn required_bits(&self) -> usize{
-        Self::custom_size() - self.0.leading_zeros() as usize + 4
+        Self::custom_size() + 4 - self.0.leading_zeros() as usize
     }
 }
 impl LeadingZerosR for LikeU12{
