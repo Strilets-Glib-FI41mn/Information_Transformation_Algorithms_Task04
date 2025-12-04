@@ -90,4 +90,90 @@ where
         }
         Ok(())
     }
+
+    pub fn decode_with_padding<O: Write>(&mut self, mut output: O, padding: u8) -> std::io::Result<()> {
+        let mut readable = BitReader::new(&mut self.input);
+        //let size_req = T::custom_size();
+        let mut size_req = self.dictionary.required_bits();
+
+        let binding = readable.read_bits(size_req)?;
+        let index_v: &[bool] = binding.as_slice();
+        let index = T::try_from(index_v).unwrap();
+        // println!("TRAILING ONES: {}, index: {index:?}, size_req: {size_req}", index.trailing_ones());
+        let sequence = vec![self.dictionary[index].0];
+
+        output.write(&sequence)?;
+        self.old_index = Some(index);
+        self.old_sequence = sequence;
+        let mut result = readable.read_bits(size_req);
+        while let Ok(index_v) = result{
+            let index = T::try_from(index_v.as_slice()).unwrap();
+            if index.trailing_ones() == size_req{
+                if T::custom_size() == size_req{
+                    size_req = 9;
+                }
+                else{
+                    size_req += 1;
+                }
+                result = readable.read_bits(size_req);
+                continue;
+            }
+            
+            let v_len = index_v.len();
+            result = readable.read_bits(size_req);
+            let last_byte_m = match &result{
+                    Ok(_) => false,
+                    Err(e) => {
+                        // println!("{:?}",&reader.buf_reader);
+                        println!("{e}");
+                        true
+                    }
+                };
+                // let start = match last_byte_m{
+                //     true => {
+                //         if padding == 0{
+                //             0
+                //         }else{
+                //             padding as usize
+                //         }
+                //     }
+                //     false => 0,
+                // };
+
+                let end = match last_byte_m{
+                    true => {
+                        if padding == 0{
+                            v_len
+                        }else{
+                            v_len - padding as usize + 1
+                        }
+                    }
+                    false => v_len,
+                };
+            // let index = T::try_from(&index_v[start..v_len]).unwrap();
+            let index = T::try_from(&index_v[0..end]).unwrap();
+            
+            // let index = T::try_from(index_v.as_slice()).unwrap();
+
+            let a = self.dictionary.get_phrase(index);
+            match a{
+                Some(sequence) => {
+                    output.write(&sequence)?;
+                    self.dictionary.push(&(sequence[0], self.old_index.unwrap()));
+                    self.old_index = Some(index);
+                    self.old_sequence = sequence;
+                },
+                None => {
+                    let mut sequence = self.old_sequence.clone();
+                    sequence.push(self.old_sequence[0]);
+                    output.write(&sequence)?;
+                    self.dictionary.push(&(self.old_sequence[0], self.old_index.unwrap()));
+                    self.old_index = Some(T::try_from(self.dictionary.len() - 1).unwrap());
+                    self.old_sequence = sequence;
+                },
+            }
+            // result = readable.read_bits(size_req);
+        }
+        Ok(())
+    }
 }
