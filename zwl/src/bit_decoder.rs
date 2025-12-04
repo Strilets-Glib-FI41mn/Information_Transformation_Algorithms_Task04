@@ -91,7 +91,10 @@ where
         Ok(())
     }
 
-    pub fn decode_with_padding<O: Write>(&mut self, mut output: O, padding: u8) -> std::io::Result<()> {
+    pub fn decode_with_padding<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {
+        let mut padding =[0];
+        self.input.read(&mut padding)?;
+        let padding = padding[0];
         let mut readable = BitReader::new(&mut self.input);
         //let size_req = T::custom_size();
         let mut size_req = self.dictionary.required_bits();

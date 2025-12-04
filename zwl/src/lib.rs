@@ -169,10 +169,10 @@ before using this eBook.";
         let mut cursor_writting = std::io::Cursor::new(&mut buffer);
         assert!(encoder.encode_with_padding_headerless(&mut cursor_writting).is_ok());
         println!("{:?}", buffer);
-        let mut decoder = ZwlBitDecoder::<LikeU16, _>::new(&buffer[1..], FilledBehaviour::Clear);
+        let mut decoder = ZwlBitDecoder::<LikeU16, _>::new(&buffer[0..], FilledBehaviour::Clear);
         
         let padding = buffer[0];
-        assert!(decoder.decode_with_padding(&mut buffer_d[..], padding).is_ok());
+        assert!(decoder.decode_with_padding(&mut buffer_d[..]).is_ok());
 
         println!("-----");
         println!("encoder dict: {:?}", encoder.dictionary.words);
@@ -197,9 +197,9 @@ before using this eBook.";
         let mut cursor_writting = std::io::Cursor::new(&mut buffer);
         assert!(encoder.encode_with_padding_headerless(&mut cursor_writting).is_ok());
         println!("{:?}", buffer);
-        let mut decoder = ZwlBitDecoder::<LikeU32, _>::new(&buffer[1..], FilledBehaviour::Clear);
+        let mut decoder = ZwlBitDecoder::<LikeU32, _>::new(&buffer[0..], FilledBehaviour::Clear);
         let padding = buffer[0];
-        assert!(decoder.decode_with_padding(&mut buffer_d[..], padding).is_ok());
+        assert!(decoder.decode_with_padding(&mut buffer_d[..]).is_ok());
 
         println!("-----");
         println!("encoder dict: {:?}", encoder.dictionary.words);
@@ -224,9 +224,9 @@ before using this eBook.";
         let mut cursor_writting = std::io::Cursor::new(&mut buffer);
         assert!(encoder.encode_with_padding_headerless(&mut cursor_writting).is_ok());
         println!("{:?}", buffer);
-        let mut decoder = ZwlBitDecoder::<LikeU64, _>::new(&buffer[1..], FilledBehaviour::Clear);
+        let mut decoder = ZwlBitDecoder::<LikeU64, _>::new(&buffer[0..], FilledBehaviour::Clear);
         let padding = buffer[0];
-        assert!(decoder.decode_with_padding(&mut buffer_d[..], padding).is_ok());
+        assert!(decoder.decode_with_padding(&mut buffer_d[..]).is_ok());
 
         println!("-----");
         println!("encoder dict: {:?}", encoder.dictionary.words);
