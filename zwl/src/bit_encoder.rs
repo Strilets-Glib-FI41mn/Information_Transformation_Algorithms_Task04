@@ -74,63 +74,7 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
         self.encode_headerless(output)?;
         Ok(())
     }
-    pub fn encode_with_padding_headerless<O: Write + std::io::Seek>(&mut self, mut output: O) -> std::io::Result<()>{
-        let st = output.seek(std::io::SeekFrom::Current(0))?;
-        output.write(&[0])?;
-
-        let mut writtable = BitWriter::new(&mut output);
-        let mut buf = [0; 64];
-        let mut result = self.input.read(&mut buf);
-        let mut size_req = 9;
-        while let Ok(s) = result && s > 0{
-            for i in 0..s{
-            self.current_symbol = Some(buf[i]);
-            self.sequence.push(buf[i]);
-                let found = self.dictionary.find(&self.sequence);
-                match found{
-                    Some(found) => {
-                        self.index = Some(found);
-                    },
-                    None => {
-                        if let Some(t) = self.index{
-                            // println!("INDEX: {t:?}, {:?}, {:?}, req_t {}", t.bits_vec(), TryInto::<T>::try_into(t.bits_vec().as_slice()), t.required_bits());
-                            let mut target = t.bits_vec();
-                            if target.len() < size_req{
-                                // println!("len:{} ->{size_req}", target.len());
-                                let mut summary = vec![false; size_req - target.len()];
-                                target.append(&mut summary);
-                            }
-                            writtable.write_bits(&target)?;
-                        }
-                        self.dictionary.push(&(self.current_symbol.unwrap(), self.index.unwrap()));
-                        let new_required_bits = self.dictionary.required_bits();
-                        if size_req != new_required_bits{
-                            // println!("{size_req} -> {new_required_bits}");
-                            let output = (0..size_req).into_iter().map(|_| true).collect::<Vec<_>>();
-                            writtable.write_bits(&output)?;
-                            // let transf= T::try_from(output.as_slice()).unwrap();
-                            // println!("11111...: {transf:?}, 0s: {}, 1s: {}, {}", transf.leading_zeros(), transf.trailing_ones(), transf.trailing_ones() - size_req);
-                            // println!("{size_req} -> {new_required_bits}");
-                            size_req = new_required_bits;
-                        }
-                        self.sequence = vec![self.current_symbol.unwrap()];
-                        self.index = self.dictionary.find(&[self.current_symbol.unwrap()]);
-                    },
-                }
-            }
-            result = self.input.read(&mut buf);
-        }
-        if let Some(t) = self.index{
-            writtable.write_bits(&(t.bits_vec()))?;
-        }
-        let current = writtable.output.seek(std::io::SeekFrom::Current(0))?;
-        writtable.output.seek(std::io::SeekFrom::Start(st))?;
-        writtable.output.write(&[writtable.get_padding() as u8])?;
-        writtable.output.seek(std::io::SeekFrom::Start(current))?;
-        Ok(())
-    }
-
-     pub fn write_header<O>(output: &mut O, dictionary_filled: &FilledBehaviour) -> std::io::Result<()> where O: Write  {
+    pub fn write_header<O>(output: &mut O, dictionary_filled: &FilledBehaviour) -> std::io::Result<()> where O: Write  {
         let bit_size = Self::header_bit_size();
         output.write_all(&bit_size.to_be_bytes())?;
         match dictionary_filled{
