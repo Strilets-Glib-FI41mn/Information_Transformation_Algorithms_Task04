@@ -112,7 +112,7 @@ impl<T> Dictionary<T>{
 impl<T: From<u8> + PartialOrd + Copy + Sub<T, Output = T> + TryInto<usize, Error: std::fmt::Debug> + TryFrom<usize, Error: std::fmt::Debug> + std::fmt::Debug> Dictionary<T>{
     pub fn get_phrase<G>(&self, index: G) -> Option<Vec<u8>>
     where G: From<u8> + PartialOrd + Copy + Sub<G, Output = G> + TryInto<usize, Error: std::fmt::Debug>{
-        if index < G::from(u8::MAX){
+        if index <= G::from(u8::MAX){
             match index.try_into(){
                 Ok(u) => return Some(vec![self.alphabet.get(u)?.0]),
                 Err(_) => return None
