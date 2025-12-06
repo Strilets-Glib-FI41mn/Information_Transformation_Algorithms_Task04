@@ -46,6 +46,7 @@ before using this eBook.";
 
         assert_eq!(str::from_utf8(&buffer_d.to_vec()), Ok(PREAMBLE))
     }
+
     #[test]
     fn longer_text(){
         let cursor = io::Cursor::new(PREAMBLE.as_bytes());
