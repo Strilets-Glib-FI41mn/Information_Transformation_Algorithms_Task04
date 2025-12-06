@@ -48,6 +48,32 @@ before using this eBook.";
     }
 
     #[test]
+    fn encoding_decoding_l_u12_headless() {
+        let cursor = io::Cursor::new(PREAMBLE.as_bytes());
+        let mut encoder = ZwlBitEncoder::<LikeU12, _>::new(cursor, FilledBehaviour::Clear);
+        
+        
+        // let mut buffer = vec![0u8; PREAMBLE.len() * 4];
+        // let mut buffer_d = vec![0u8; PREAMBLE.len()];
+        let mut buffer = vec![];
+        let mut buffer_d = vec![];
+        assert!(encoder.encode_headerless(&mut buffer[..]).is_ok());
+        println!("{:?}", buffer);
+        let mut decoder = ZwlBitDecoder::<LikeU12, _>::new(&buffer[..], FilledBehaviour::Clear);
+        assert!(decoder.decode(&mut buffer_d[..]).is_ok());
+
+        println!("-----");
+        println!("encoder dict: {:?}", encoder.dictionary.words);
+        println!("-----");
+
+        println!("-----");
+        println!("decoder dict: {:?}", &decoder.dictionary.words[0..encoder.dictionary.words.len()]);
+        println!("-----");
+        println!("lost: {:?}", &decoder.dictionary.words[0..encoder.dictionary.words.len()] == &encoder.dictionary.words[0..]);
+
+        assert_eq!(str::from_utf8(&buffer_d.to_vec()), Ok(PREAMBLE))
+    }
+    #[test]
     fn longer_text(){
         let cursor = io::Cursor::new(PREAMBLE.as_bytes());
         let mut encoder: ZwlBitEncoder<LikeU16, io::Cursor<&[u8]>> = ZwlBitEncoder::<LikeU16, io::Cursor<&[u8]>>::new(cursor, FilledBehaviour::Clear);
