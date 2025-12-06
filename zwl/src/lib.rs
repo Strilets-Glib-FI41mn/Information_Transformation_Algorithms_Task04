@@ -78,9 +78,9 @@ before using this eBook.";
         println!("-----");
 
         println!("-----");
-        println!("decoder dict: {:?}", &decoder.dictionary.words[0..encoder.dictionary.words.len()]);
+        // println!("decoder dict: {:?}", &decoder.dictionary.words[0..encoder.dictionary.words.len()]);
         println!("-----");
-        println!("lost: {:?}", &decoder.dictionary.words[0..encoder.dictionary.words.len()] == &encoder.dictionary.words[0..]);
+        // println!("lost: {:?}", &decoder.dictionary.words[0..encoder.dictionary.words.len()] == &encoder.dictionary.words[0..]);
 
         assert_eq!(str::from_utf8(&buffer_d.to_vec()), Ok(PREAMBLE))
     }

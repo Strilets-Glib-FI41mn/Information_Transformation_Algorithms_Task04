@@ -88,6 +88,7 @@ where
             }
             result = readable.read_bits(size_req);
         }
+        output.flush()?;
         Ok(())
     }
 }

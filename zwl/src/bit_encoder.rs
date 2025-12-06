@@ -67,6 +67,7 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
         if let Some(t) = self.index{
             writtable.write_bits(&(t.bits_vec()))?;
         }
+        writtable.output.flush()?;
         Ok(())
     }
     pub fn encode<O: Write>(&mut self, mut output: O) -> std::io::Result<()> {
