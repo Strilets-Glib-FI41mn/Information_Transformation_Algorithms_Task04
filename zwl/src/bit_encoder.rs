@@ -64,8 +64,14 @@ pub fn encode_headerless<O: Write>(&mut self, mut output: O) -> std::io::Result<
             }
             result = self.input.read(&mut buf);
         }
-        if let Some(t) = self.index{
-            writtable.write_bits(&(t.bits_vec()))?;
+        println!("ending index: {:?}; current symbol: {:?}", self.index, self.current_symbol);
+        if let Some(last_symb) = self.index{
+            let mut target = last_symb.bits_vec();
+            if target.len() < size_req{
+                let mut summary = vec![false; size_req - target.len()];
+                target.append(&mut summary);
+            }
+            writtable.write_bits(&target)?;
         }
         writtable.output.flush()?;
         Ok(())

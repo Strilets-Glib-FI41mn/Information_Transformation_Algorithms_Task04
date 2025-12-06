@@ -70,11 +70,12 @@ before using this eBook.";
         println!("-----");
 
         println!("-----");
-        println!("decoder dict: {:?}", &decoder.dictionary.words[0..encoder.dictionary.words.len()]);
+        // println!("decoder dict: {:?}", &decoder.dictionary.words[0..encoder.dictionary.words.len()]);
         println!("-----");
-        println!("lost: {:?}", &decoder.dictionary.words[0..encoder.dictionary.words.len()] == &encoder.dictionary.words[0..]);
+        // println!("lost: {:?}", &decoder.dictionary.words[0..encoder.dictionary.words.len()] == &encoder.dictionary.words[0..]);
 
-        assert_eq!(str::from_utf8(&buffer_d.to_vec()), Ok(PREAMBLE))
+        assert_eq!(PREAMBLE.as_bytes(), &buffer_d.to_vec());
+        assert_eq!(Ok(PREAMBLE), str::from_utf8(&buffer_d.to_vec()));
     }
     #[test]
     fn longer_text(){
@@ -87,7 +88,7 @@ before using this eBook.";
         let mut decoder = ZwlBitDecoder::<LikeU16, _>::new(&buffer[2..], FilledBehaviour::Clear);
         assert!(decoder.decode(&mut buffer_d[..]).is_ok());
 
-        assert_eq!(str::from_utf8(&buffer_d.to_vec()), Ok(PREAMBLE))
+        assert_eq!(Ok(PREAMBLE), str::from_utf8(&buffer_d.to_vec()))
     }
 
     #[test]
