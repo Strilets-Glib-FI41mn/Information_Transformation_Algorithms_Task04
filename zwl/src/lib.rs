@@ -57,10 +57,13 @@ before using this eBook.";
         // let mut buffer_d = vec![0u8; PREAMBLE.len()];
         let mut buffer = vec![];
         let mut buffer_d = vec![];
-        assert!(encoder.encode_headerless(&mut buffer[..]).is_ok());
+        let mut cursor_writer = std::io::Cursor::new(&mut buffer);
+        assert!(encoder.encode_headerless(&mut cursor_writer).is_ok());
         println!("{:?}", buffer);
-        let mut decoder = ZwlBitDecoder::<LikeU12, _>::new(&buffer[..], FilledBehaviour::Clear);
-        assert!(decoder.decode(&mut buffer_d[..]).is_ok());
+        let mut cursor = std::io::Cursor::new(&buffer);
+        let mut decoder = ZwlBitDecoder::<LikeU12, _>::new(&mut cursor, FilledBehaviour::Clear);
+        let mut cursor_writer = std::io::Cursor::new(&mut buffer_d);
+        assert!(decoder.decode(&mut cursor_writer).is_ok());
 
         println!("-----");
         println!("encoder dict: {:?}", encoder.dictionary.words);
